@@ -1,0 +1,29 @@
+- name: basic
+  template: |
+    Hello, {{name}}!
+  tests:
+    - desc: uses a provided variable
+      data:
+        input: { name: "Michael" }
+      expect:
+        messages:
+          - role: user
+            content: [{ text: "Hello, Michael!\n" }]
+    - desc: uses a default variable
+      data:
+        input: {}
+      options:
+        input: { default: { name: "User" } }
+      expect:
+        messages:
+          - role: user
+            content: [{ text: "Hello, User!\n" }]
+    - desc: overrides a default variable with a provided variable
+      data:
+        input: { name: "Pavel" }
+      options:
+        input: { default: { name: "User" } }
+      expect:
+        messages:
+          - role: user
+            content: [{ text: "Hello, Pavel!\n" }]

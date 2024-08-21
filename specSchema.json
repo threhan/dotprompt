@@ -1,31 +1,34 @@
 {
-  "type": "array",
-  "items": {
-    "type": "object",
-    "properties": {
-      "name": {
-        "type": "string"
-      },
-      "template": {
-        "type": "string"
-      },
-      "cases": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "data": {
-              "type": "object"
-            },
-            "options": {
-              "type": "object"
-            },
-            "expect": {
-              "type": "object"
-            }
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "template": {
+      "type": "string"
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "desc": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "options": {
+            "type": "object"
+          },
+          "expect": {
+            "type": "object"
           }
-        }
+        },
+        "required": ["data", "expect"]
       }
     }
-  }
+  },
+  "required": ["name", "template", "tests"]
 }

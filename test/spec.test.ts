@@ -26,7 +26,7 @@ for (const file of files) {
       for (const tc of s.tests) {
         test(`${suiteName} ${s.name} ${tc.desc}`, () => {
           const env = new DotpromptEnvironment();
-          const result = env.render(s.template, tc.data);
+          const result = env.render(s.template, tc.data, tc.options);
           assert.deepStrictEqual(tc.expect, result);
         });
       }

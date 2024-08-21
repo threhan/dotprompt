@@ -63,11 +63,14 @@ export class DotpromptEnvironment {
 
     return (data: DataArgument, options?: PromptMetadata<ModelConfig>) => {
       const metadata: PromptMetadata<ModelConfig> = { ...parsedMetadata, ...options };
-      const renderedString = renderString(data.input, {
-        data: {
-          metadata: { prompt: metadata, context: data.context, history: data.history },
-        },
-      });
+      const renderedString = renderString(
+        { ...(options?.input?.default || {}), ...data.input },
+        {
+          data: {
+            metadata: { prompt: metadata, context: data.context, history: data.history },
+          },
+        }
+      );
       return {
         ...this.mergeMetadata(parsedMetadata, options),
         messages: toMessages<ModelConfig>(renderedString, data, metadata),
