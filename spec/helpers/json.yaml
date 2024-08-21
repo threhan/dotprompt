@@ -1,0 +1,18 @@
+- name: basic
+  template: "{{json this}}"
+  tests:
+    - desc: renders json in place
+      data: { input: { test: true } }
+      expect:
+        messages:
+          - role: user
+            content: [{ text: '{"test":true}' }]
+- name: indented
+  template: "{{json this indent=2}}"
+  tests:
+    - desc: renders json in place
+      data: { input: { test: true } }
+      expect:
+        messages:
+          - role: user
+            content: [{ text: "{\n  \"test\": true\n}" }]
