@@ -1,0 +1,183 @@
+---
+title: Template Content
+sort_order: 3
+---
+
+Dotprompt uses a template syntax based on [Handlebars](https://handlebarsjs.com/guide/), the popular templating language with existing implementations in several programming languages. This syntax allows for dynamic content insertion and basic logic within prompts.
+
+## Language Basics
+
+All Dotprompt implementations **MUST** implement the Handlebars features specified in these docs, but **MAY** also implement additional capabilities as documented in the [Handlebars language specification](https://handlebarsjs.com/guide/expressions.html).
+
+### Expressions
+
+Handlebars expressions are contained within `{{}}` tags.
+
+#### Variable Interpolation
+
+- **Syntax:** `{{variableName}}` or `{{object.propertyName}}`
+- **Description:** Inserts the value of the specified variable.
+- **Example:** `Hello, {{name}} from {{address.city}}!`
+
+#### Escaped Expressions
+
+- **Syntax:** `\{{variableName}}` (escaped expression), `{{{variableName}}}`
+- **Description:** Renders the literal text `{{variableName}}` without interpolation.
+- **Example:** `This is how you show a variable: \{{variableName}}`
+
+## Built-in Helpers
+
+Dotprompt provides several built-in helpers to enhance template functionality.
+
+### Conditional Blocks
+
+#### `#if`
+
+- **Syntax:** `{{#if condition}}...{{/if}}`
+- **Description:** Renders the block if the condition is truthy.
+- **Example:**
+  ```handlebars
+  {{#if isLoggedIn}}
+    Welcome back!
+  {{/if}}
+  ```
+
+#### `else`
+
+- **Syntax:** `{{#if condition}}...{{else}}...{{/if}}`
+- **Description:** Provides an alternative block to render if the condition is falsy.
+- **Example:**
+  ```handlebars
+  {{#if isLoggedIn}}
+    Welcome back!
+  {{else}}
+    Please log in.
+  {{/if}}
+  ```
+
+#### `#unless`
+
+- **Syntax:** `{{#unless condition}}...{{/unless}}`
+- **Description:** Renders the block if the condition is falsy.
+- **Example:**
+  ```handlebars
+  {{#unless isLoggedIn}}
+    Please log in to continue.
+  {{/unless}}
+  ```
+
+### Iteration
+
+#### `#each`
+
+- **Syntax:** `{{#each array}}...{{/each}}`
+- **Description:** Iterates over an array or object properties, assigning `this` to the currently enumerated item and `@index` to the index or key within the array or object.
+- **Example:**
+  ```handlebars
+  {{#each items}}
+    - {{this}} is item {{@index}}
+  {{/each}}
+  ```
+
+## Dotprompt Helpers
+
+The following helpers **MUST** be included in all implementations of Dotprompt and provide the tools to manage multi-message and multi-modal prompting.
+
+#### `json`
+
+- **Syntax:** `{{json varName}}`
+- **Description:** Serializes the provided variable into JSON and inserts it at the expression point.
+- **Example:**
+  ```handlebars
+  Here is information about the current user:
+
+  {{ json currentUser }}
+  ```
+
+#### `role`
+
+- **Syntax:** `{{role "roleName"}}`
+- **Description:** Begins a new message with the specified role for multi-message prompts.
+- **Example:**
+  ```handlebars
+  {{role "system"}}
+  You are a helpful AI assistant.
+  {{role "user"}}
+  What's the weather like today?
+  ```
+
+#### `history`
+
+- **Syntax:** `{{history}}`
+- **Description:** Inserts the conversation history in multi-turn prompts.
+- **Example:**
+  ```handlebars
+  {{role "system"}}
+  You are a helpful AI assistant.
+  {{history}}
+  {{role "user"}}
+  What was my last question about?
+  ```
+
+#### `media`
+
+- **Syntax:** `{{media url=urlVariable}}`
+- **Description:** Inserts media content (e.g., images) into the prompt.
+- **Example:**
+  ```handlebars
+  Describe this image:
+  {{media url=imageUrl}}
+  ```
+
+#### `section`
+
+- **Syntax:** `{{section "sectionName"}}`
+- **Description:** Manually positions specific sections within the prompt.
+- **Example:**
+  ```handlebars
+  This is the main content.
+
+  {{section "output"}}
+
+  This comes after the output instructions.
+  ```
+
+## Partials
+
+Partials are reusable template snippets that can be included in other templates.
+
+- **Syntax:** `{{>partialName}}`
+- **Description:** Includes the content of the specified partial.
+- **Example:**
+  ```handlebars
+  {{>header}}
+  Main content goes here.
+  {{>footer}}
+  ```
+
+### Partial with Arguments
+
+- **Syntax:** `{{>partialName arg1=value1 arg2=value2}}`
+- **Description:** Includes a partial with specific arguments.
+- **Example:**
+  ```handlebars
+  {{>greeting name=userName style=greetingStyle}}
+  ```
+
+### Partial with Context
+
+- **Syntax:** `{{>partialName this}}`
+- **Description:** Passes the current context to the partial.
+- **Example:**
+  ```handlebars
+  {{#each items}}
+    {{>listItem this}}
+  {{/each}}
+  ```
+
+## Custom Helpers
+
+All Dotprompt implementations **MUST** allow for the definition of custom helpers to extend Dotprompt syntax. The specific mechanism of custom helper registration is up to the specific implementation. Custom helpers are used in the following manner:
+
+- **Basic Custom Helper:** `{{customHelperName arg1 "arg2"}}`
+- **Named Arguments:** `{{customHelperName arg1=var1 arg2="var2"}}`

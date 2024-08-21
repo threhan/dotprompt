@@ -1,0 +1,134 @@
+---
+title: Prompt Frontmatter
+sort_order: 1
+---
+
+The frontmatter in Dotprompt files contains metadata and configuration for the prompt. It is defined using YAML syntax at the beginning of the file, enclosed between triple dashes (`---`).
+
+## Structure
+
+```handlebars
+---
+# Frontmatter content goes here
+---
+
+Prompt template goes here.
+```
+
+All frontmatter fields are considered optional in a given `.prompt` file, as Dotprompt implementations may provide default values for any or all of them. If no frontmatter fields need to be specified in a given file, the frontmatter may be omitted entirely and only a prompt template provided.
+
+## Full Example
+
+Here's an example of a Dotprompt frontmatter:
+
+```handlebars
+---
+name: greetingPrompt
+variant: formal
+model: googleai/gemini-1.5-flash
+tools: 
+  - timeOfDay
+config:
+  version: gemini-1.5-flash-latest
+  temperature: 0.7
+  topK: 20
+  topP 0.8
+  stopSequences:
+    - STOPSTOPSTOP
+input:
+  default:
+    name: Guest
+  schema:
+    name: string
+    language?: string
+output:
+  format: json
+  schema:
+    greeting: string, the greeting to provide to the guest
+    formalityLevel: number, the level of formality of your response
+metadata:
+  customKey:
+    customValue: 123
+---
+```
+
+## Available Fields
+
+### `name`
+- **Type:** `string`
+- **Description:** The name of the prompt. If unspecified, inferred by the filename of the loaded prompt (e.g. `myPrompt.prompt` has an inferred name of `myPrompt`).
+
+### `variant`
+- **Type:** `string`
+- **Description:** The variant name for the prompt. If unspecified, inferred by the filename of the loaded prompt (e.g. `myPrompt.variant1.prompt` has inferred name of `myPrompt` and inferred variant of `variant1`).
+
+### `model`
+- **Type:** `string` or `ModelArgument<Options>`
+- **Description:** The name of the model to use for this prompt, e.g., `googleai/gemini-1.5-flash-latest`. The Dotprompt implementation is responsible for resolving a string model name to an executable model.
+
+### `tools`
+- **Type:** `string[]`
+- **Description:** Names of tools (registered in the Dotprompt implementation) to allow use of in this prompt.
+
+### `config`
+- **Type:** `object`
+- **Description:** Configuration to be passed to the model implementation as a `Map<string,any>`. The specific configuration options vary depending on the model implementation.
+- **Common Config:** Model implementations should respect the following config properties where applicable:
+  - `version`:
+    - **Type:** `string`
+    - **Description:** While `model` specifies a model "family" (e.g. Gemini 1.5 Flash, Claude 3.5 Sonnet), `version` specifies a particular version/checkpoint of the model to use. This allows for version pinning and reproducibility of results.
+    - **Example:**  `"gemini-1.5-pro-0801"` or `"v2"`
+
+  - `temperature`:
+    - **Type:** `number`
+    - **Description:** Controls the randomness of the model's output. Higher values (e.g., `0.8`) make the output more random, while lower values (e.g., `0.2`) make it more deterministic.
+    - **Range:** Typically between 0 and 1, depends on model implementation.
+    - **Example:**  `0.7`
+
+  - `maxOutputTokens`:
+    - **Type:** `number`
+    - **Description:** Limits the maximum number of tokens in the model's response. This can help control the length of the generated text.
+    - **Example:**  `150`
+
+  - `topK`:
+    - **Type:** `number`
+    - **Description:** Limits the number of highest probability vocabulary tokens to consider at each step. This can help focus the model's output on more likely tokens.
+    - **Example:**  `40`
+
+  - `topP`:
+    - **Type:** `number`
+    - **Description:** Sets a probability threshold for token selection. The model will only consider tokens whose cumulative probability exceeds this threshold.
+    - **Range:** Typically between 0 and 1
+    - **Example:**  `0.95`
+
+  - `stopSequences`:
+    - **Type:** `string[]`
+    - **Description:** An array of strings that, if encountered, will cause the model to stop generating further output. This is useful for controlling where the model's response should end.
+    - **Example:**  `["END", "\n\n", "User:"]`
+
+### `input`
+- **Type:** `object`
+- **Description:** Defines the input variables the prompt. If `input` is not specified, the implementation should accept any `Map<string,any>` values as input and pass them to the prompt template.
+- **Properties:**
+  - `default`:
+    - **Type:** `any`
+    - **Description:** Defines the default input variable values to use if none are provided. Input values passed from the implementation should be merged into these values with a shallow merge strategy.
+  - `schema`:
+    - **Type:** [Schema](schema)
+    - **Description:** Schema representing the input values for the prompt. Must correspond to a JSON Schema `object` type.
+
+### `output`
+- **Type:** `object`
+- **Description:** Defines the expected model output format.
+- **Properties:**
+  - `format`:
+    - **Type:** `string`
+    - **Common Values:** `json`, `text`
+    - **Description:** Desired output format for this prompt. Output formats are implementation-specific, but 
+  - `schema`:
+    - **Type:** [Schema](schema)
+    - **Description:** Schema representing the expected output from the prompt. Must correspond to a JSON Schema `object` type.
+
+### `metadata`
+- **Type:** `Map<string, any>`
+- **Description:** Arbitrary metadata to be used by code, tools, and libraries.

@@ -1,0 +1,46 @@
+---
+import { capitalizeFirstLetter } from "@/lib/utils";
+import type { MenuItemWithDraft, SideNavMenuProps } from "@/lib/types";
+
+const { items, level } = Astro.props as SideNavMenuProps;
+const pathname: string = new URL(Astro.request.url).pathname;
+
+// To pass the tailwindcss classes to the astro component
+const { class: className } = Astro.props;
+
+function sortChildren(children: MenuItemWithDraft[]) {
+  console.log("sorting children", children);
+  return [...children].sort((a, b) => {
+    if (a.sort_order && b.sort_order) return a.sort_order - b.sort_order;
+    if (a.sort_order) return -1;
+    if (b.sort_order) return 1;
+    return a.slug < b.slug ? -1 : 1;
+  });
+}
+---
+
+<ul class:list={["list-none m-0", className]}>
+  {
+    items
+      .filter((item) => !item.draft)
+      .map((item) => {
+        const label = item.title
+          ? capitalizeFirstLetter(item.title)
+          : capitalizeFirstLetter(item.slug.split("/").pop() || "");
+        const className = `
+        ${level === 0 ? "font-semibold" : "text-muted-foreground"}
+        ${pathname === "/" + item.slug ? "text-primary" : "no-underline"}
+        `.trim();
+        return (
+          <li class="w-full">
+            <a href={`/${item.slug}`} class:list={[className, "text-sm leading-none w-full"]}>
+              {label}
+            </a>
+            {item.children.length > 0 && (
+              <Astro.self items={sortChildren(item.children)} level={level + 1} />
+            )}
+          </li>
+        );
+      })
+  }
+</ul>

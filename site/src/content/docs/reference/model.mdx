@@ -1,0 +1,292 @@
+---
+title: Common Model Interface
+sort_order: 4
+---
+
+Dotprompt implementations are not required to conform to any specific structured interface for interacting with GenAI models. However, the Dotprompt reference implementation in [Firebase Genkit](https://github.com/firebase/genkit) leverages a common model interface that may be useful for other implementors to follow.
+
+In the future, a Dotprompt "spec test" will be made available that exercises the various parts of Dotprompt and compares the results to this common model request format.
+
+## GenerateRequest
+
+### Full Example
+
+```json
+{
+  "messages": [
+    {
+      "role": "system",
+      "content": [
+        {"text": "You are a helpful AI assistant."}
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {"text": "Hello, can you help me with a task?"}
+      ]
+    },
+    {
+      "role": "model",
+      "content": [
+        {"text": "Of course! I'd be happy to help you with a task. What kind of task do you need assistance with? Please provide me with more details, and I'll do my best to help you."}
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {"text": "Can you analyze this image and tell me what you see?"},
+        {
+          "media": {
+            "contentType": "image/jpeg",
+            "url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAg..."
+          }
+        }
+      ]
+    }
+  ],
+  "config": {
+    "temperature": 0.7,
+    "maxOutputTokens": 1000,
+    "topK": 40,
+    "topP": 0.95,
+    "stopSequences": ["User:", "Human:"]
+  },
+  "tools": [
+    {
+      "name": "weather",
+      "description": "Get the current weather for a location",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "The location to get weather for"
+          }
+        },
+        "required": ["location"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "temperature": {
+            "type": "number",
+            "description": "The current temperature in Celsius"
+          },
+          "condition": {
+            "type": "string",
+            "description": "The current weather condition"
+          }
+        },
+        "required": ["temperature", "condition"]
+      }
+    }
+  ],
+  "output": {
+    "format": "json",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "analysis": {
+          "type": "string",
+          "description": "A detailed analysis of the image"
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of objects identified in the image"
+        }
+      },
+      "required": ["analysis", "objects"]
+    }
+  },
+  "context": [
+    {
+      "id": "doc1",
+      "content": [{"text": "This is some context information that might be relevant to the task."}],
+      "metadata": {
+        "source": "user-provided"
+      }
+    }
+  ]
+}
+```
+### Properties
+
+#### `messages`
+- **Type:** `array` of [Message](#message) objects.
+- **Description:** The conversation history and current prompt.
+
+#### `config`
+- **Type:** [ModelConfig](#modelconfig)
+- **Description:** Configuration options for the model.
+
+#### `tools`
+- **Type:** `array` of [ToolDefinition](#tooldefinition)
+- **Description:** Definitions of tools available to the model.
+
+#### `output`
+- **Type:** [Output](#output)
+- **Description:** Specification for the desired output format.
+
+#### `context`
+- **Type:** `array` of [Document](#document)
+- **Description:** Grounding context documents for the model.
+
+## Message
+
+A message represents a single "turn" in a multi-turn conversation. Each message must have a role and specified content.
+
+### Properties
+
+#### `role`
+- **Type:** `string`
+- **Description:** The role of the message sender. Can be "system", "user", "model", or "tool".
+
+#### `content`
+- **Type:** `array` of [Part](#part)
+- **Description:** The content of the message, which can include text, media, tool requests, and tool responses.
+
+#### `metadata`
+- **Type:** `object`
+- **Description:** Optional. Additional metadata for the message.
+
+## Part
+
+A `Part` object can be one of the following types:
+
+### TextPart
+
+#### `text`
+- **Type:** `string`
+- **Description:** The text content of the message.
+
+### MediaPart
+
+#### `media`
+- **Type:** `object`
+- **Description:** Contains media information.
+
+#### `media.contentType`
+- **Type:** `string`
+- **Description:** Optional. The media content type. Inferred from data URI if not provided.
+
+#### `media.url`
+- **Type:** `string`
+- **Description:** A `data:` or `https:` URI containing the media content.
+
+### ToolRequestPart
+
+#### `toolRequest`
+- **Type:** `object`
+- **Description:** A request for a tool to be executed.
+
+#### `toolRequest.ref`
+- **Type:** `string`
+- **Description:** Optional. The call ID or reference for a specific request.
+
+#### `toolRequest.name`
+- **Type:** `string`
+- **Description:** The name of the tool to call.
+
+#### `toolRequest.input`
+- **Type:** `any`
+- **Description:** Optional. The input parameters for the tool, usually a JSON object.
+
+### ToolResponsePart
+
+#### `toolResponse`
+- **Type:** `object`
+- **Description:** A provided response to a tool call.
+
+#### `toolResponse.ref`
+- **Type:** `string`
+- **Description:** Optional. The call ID or reference for a specific request.
+
+#### `toolResponse.name`
+- **Type:** `string`
+- **Description:** The name of the tool.
+
+#### `toolResponse.output`
+- **Type:** `any`
+- **Description:** Optional. The output data returned from the tool, usually a JSON object.
+
+## ModelConfig
+
+`ModelConfig` is an arbitrary `Map<string,any>` that depends on the specific implementation of the underlying model. However, the following common configuration options should be respected in implementation whenever applicable:
+
+### Common Config Properties
+#### `temperature`
+- **Type:** `number`
+- **Description:** Optional. Controls the randomness of the model's output.
+
+#### `maxOutputTokens`
+- **Type:** `number`
+- **Description:** Optional. Limits the maximum number of tokens in the model's response.
+
+#### `topK`
+- **Type:** `number`
+- **Description:** Optional. Limits the number of highest probability vocabulary tokens to consider at each step.
+
+#### `topP`
+- **Type:** `number`
+- **Description:** Optional. Sets a probability threshold for token selection.
+
+#### `stopSequences`
+- **Type:** `array` of `string`
+- **Description:** Optional. Sequences that, if encountered, will cause the model to stop generating further output.
+
+## Tool Object
+
+### `name`
+- **Type:** `string`
+- **Description:** The name of the tool.
+
+### `description`
+- **Type:** `string`
+- **Description:** A description of what the tool does.
+
+### `inputSchema`
+- **Type:** `object`
+- **Description:** A JSON Schema object describing the expected input for the tool.
+
+### `outputSchema`
+- **Type:** `object`
+- **Description:** Optional. A JSON Schema object describing the expected output from the tool.
+
+## Output Object
+
+### `format`
+- **Type:** `string`
+- **Description:** Optional. The desired output format. All implementations should support `json` and `text` at a minimum.
+
+### `schema`
+- **Type:** `object`
+- **Description:** Optional. A JSON Schema object describing the expected structure of the output.
+
+## Document Object
+
+### `id`
+- **Type:** `string`
+- **Description:** A unique identifier for the document.
+
+### `content`
+- **Type:** `string`
+- **Description:** The text content of the document.
+
+### `metadata`
+- **Type:** `object`
+- **Description:** Optional. Additional metadata for the document.
+
+## Notes
+
+- The `messages` array represents the conversation history and current prompt. Each message can contain multiple parts, allowing for rich, multimodal interactions.
+- The `config` object allows fine-tuning of the model's behavior. Not all models support all configuration options.
+- The `tools` array defines functions that the model can call during its execution. This enables the model to interact with external systems or perform specific tasks.
+- The `output` object specifies the desired format and structure of the model's response. This is particularly useful for ensuring consistent, parseable outputs.
+- The `context` array provides additional information that may be relevant to the task but isn't part of the direct conversation history.
+- The `candidates` field determines how many alternative responses the model should generate.
+
+This interface provides a flexible and powerful way to interact with GenAI models, supporting various types of inputs, outputs, and model configurations.
