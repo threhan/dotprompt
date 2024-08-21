@@ -1,0 +1,25 @@
+{
+  "name": "dotprompt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "compile": "tsup-node src/index.ts --dts --format esm,cjs",
+    "build": "npm run compile && tsc --noEmit",
+    "watch": "npm run compile -- --watch",
+    "test": "node --import tsx --test test/*.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tsup": "^8.2.4",
+    "tsx": "^4.17.0",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@types/node": "^22.2.0",
+    "handlebars": "^4.7.8",
+    "yaml": "^2.5.0"
+  }
+}

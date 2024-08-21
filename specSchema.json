@@ -1,0 +1,31 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "template": {
+        "type": "string"
+      },
+      "cases": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object"
+            },
+            "options": {
+              "type": "object"
+            },
+            "expect": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+- name: system_role
+  template: |
+    {{role "system"}}{{systemGreeting}} from system
+    {{role "user"}}{{userGreeting}} from user
+  tests:
+    - desc: renders variables in system and user role
+      data:
+        input: { systemGreeting: hi, userGreeting: howdy }
+      expect:
+        messages:
+          [
+            { content: [{ text: "hi from system\n" }], role: "system" },
+            { content: [{ text: "howdy from user\n" }], role: "user" },
+          ]
+- name: all_roles
+  template: |
+    {{role "system"}}this is system
+    {{role "user"}}this is user1
+    {{role "model"}}this is model
+    {{role "user"}}this is user2
+  tests:
+    - desc: allows system, user, and model roles
+      expect:
+        messages:
+          [
+            { content: [{ text: "this is system\n" }], role: "system" },
+            { content: [{ text: "this is user1\n" }], role: "user" },
+            { content: [{ text: "this is model\n" }], role: "model" },
+            { content: [{ text: "this is user2\n" }], role: "user" },
+          ]

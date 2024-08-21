@@ -1,0 +1,108 @@
+import { parse } from "yaml";
+import { DataArgument, Document, MediaPart, Message, Part, PromptMetadata } from "./types";
+
+const FRONTMATTER_REGEX = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+
+export function parseDocument<ModelConfig = Record<string, any>>(
+  source: string
+): { metadata: PromptMetadata<ModelConfig>; template: string } {
+  const match = source.match(FRONTMATTER_REGEX);
+
+  if (match) {
+    const [, frontmatter, content] = match;
+    try {
+      const metadata = parse(frontmatter) as PromptMetadata<ModelConfig>;
+      return { metadata, template: content.trim() };
+    } catch (error) {
+      console.error("Error parsing YAML frontmatter:", error);
+      return { metadata: {}, template: source.trim() };
+    }
+  }
+
+  return { metadata: {}, template: source };
+}
+
+const ROLE_REGEX = /(<<<dotprompt:(?:role:[a-z]+|history))>>>/g;
+
+export function toMessages<ModelConfig = Record<string, any>>(
+  renderedString: string,
+  data?: DataArgument,
+  options?: PromptMetadata<ModelConfig>
+): Message[] {
+  let currentMessage: { role: string; source: string } = {
+    role: "user",
+    source: "",
+  };
+  const messageSources: {
+    role: string;
+    source?: string;
+    content?: Message["content"];
+    metadata?: Record<string, unknown>;
+  }[] = [currentMessage];
+
+  for (const piece of renderedString.split(ROLE_REGEX).filter((s) => s.trim() !== "")) {
+    if (piece.startsWith("<<<dotprompt:role:")) {
+      const role = piece.substring(18);
+      if (currentMessage.source.trim()) {
+        currentMessage = { role, source: "" };
+        messageSources.push(currentMessage);
+      } else {
+        currentMessage.role = role;
+      }
+    } else if (piece.startsWith("<<<dotprompt:history")) {
+      messageSources.push(
+        ...(data?.history?.map((m) => {
+          return {
+            ...m,
+            metadata: { ...(m.metadata || {}), purpose: "history" },
+          };
+        }) || [])
+      );
+      currentMessage = { role: "model", source: "" };
+      messageSources.push(currentMessage);
+    } else {
+      currentMessage.source += piece;
+    }
+  }
+
+  const messages: Message[] = messageSources
+    .filter((ms) => ms.content || ms.source)
+    .map((m) => {
+      const out: Message = {
+        role: m.role as Message["role"],
+        content: m.content || toParts(m.source!),
+      };
+      if (m.metadata) out.metadata = m.metadata;
+      return out;
+    });
+
+  if (!data?.history || messages.find((m) => m.metadata?.purpose === "history")) return messages;
+
+  return [...messages.slice(0, -1), ...data.history, messages.at(-1)] as Message[];
+}
+
+const PART_REGEX = /(<<<dotprompt:(?:media:url|section).*?)>>>/g;
+
+function toParts(source: string): Part[] {
+  const parts: Part[] = [];
+  const pieces = source.split(PART_REGEX).filter((s) => s.trim() !== "");
+  for (let i = 0; i < pieces.length; i++) {
+    const piece = pieces[i];
+    if (piece.startsWith("<<<dotprompt:media:")) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [_, url, contentType] = piece.split(" ");
+      const part: MediaPart = { media: { url } };
+      if (contentType) part.media.contentType = contentType;
+      parts.push(part);
+    } else if (piece.startsWith("<<<dotprompt:section")) {
+      const [_, sectionType] = piece.split(" ");
+      parts.push({ metadata: { purpose: sectionType, pending: true } });
+    } else {
+      parts.push({ text: piece });
+    }
+  }
+
+  const apart: Part = { text: "foo" };
+
+  return parts;
+}
