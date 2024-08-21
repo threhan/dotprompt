@@ -5,7 +5,7 @@ import { join, relative, sep } from "node:path";
 import { DotpromptEnvironment } from "../src/environment";
 import assert from "node:assert";
 
-const specDir = join(__dirname, "..", "spec");
+const specDir = join(__dirname, "..", "..", "spec");
 const files = readdirSync(specDir, { recursive: true, withFileTypes: true });
 
 interface SpecSuite {
