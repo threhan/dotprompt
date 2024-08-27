@@ -26,8 +26,7 @@ const ROLE_REGEX = /(<<<dotprompt:(?:role:[a-z]+|history))>>>/g;
 
 export function toMessages<ModelConfig = Record<string, any>>(
   renderedString: string,
-  data?: DataArgument,
-  options?: PromptMetadata<ModelConfig>
+  data?: DataArgument
 ): Message[] {
   let currentMessage: { role: string; source: string } = {
     role: "user",
@@ -76,9 +75,22 @@ export function toMessages<ModelConfig = Record<string, any>>(
       return out;
     });
 
-  if (!data?.history || messages.find((m) => m.metadata?.purpose === "history")) return messages;
+  return insertHistory(messages, data?.history);
+}
 
-  return [...messages.slice(0, -1), ...data.history, messages.at(-1)] as Message[];
+function insertHistory(messages: Message[], history?: Message[]) {
+  if (!history || messages.find((m) => m.metadata?.purpose === "history")) return messages;
+  let lastUserMessage = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") {
+      lastUserMessage = i;
+      break;
+    }
+  }
+  if (lastUserMessage === -1) {
+    return [...messages, ...history];
+  }
+  return [...messages.slice(0, lastUserMessage), ...history, ...messages.slice(lastUserMessage)];
 }
 
 const PART_REGEX = /(<<<dotprompt:(?:media:url|section).*?)>>>/g;

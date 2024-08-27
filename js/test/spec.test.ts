@@ -11,7 +11,8 @@ const files = readdirSync(specDir, { recursive: true, withFileTypes: true });
 interface SpecSuite {
   name: string;
   template: string;
-  tests: { desc?: string; data: object; expect: object }[];
+  data?: object;
+  tests: { desc?: string; data: object; expect: object; options: object }[];
 }
 
 for (const file of files) {
@@ -20,14 +21,14 @@ for (const file of files) {
   }
 
   if (file.name.endsWith(".yaml")) {
-    const suiteName = join(relative(specDir, file.path), file.name);
+    const suiteName = join(relative(specDir, file.path), file.name.replace(/\.yaml$/, ""));
     const suites: SpecSuite[] = parse(readFileSync(join(file.path, file.name), "utf-8"));
     for (const s of suites) {
       for (const tc of s.tests) {
         test(`${suiteName} ${s.name} ${tc.desc}`, () => {
           const env = new DotpromptEnvironment();
-          const result = env.render(s.template, tc.data, tc.options);
-          assert.deepStrictEqual(tc.expect, result);
+          const result = env.render(s.template, { ...s.data, ...tc.data }, tc.options);
+          assert.deepStrictEqual(result, tc.expect);
         });
       }
     }

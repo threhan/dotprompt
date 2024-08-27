@@ -28,3 +28,16 @@
             { content: [{ text: "this is model\n" }], role: "model" },
             { content: [{ text: "this is user2\n" }], role: "user" },
           ]
+- name: system_only_prompt
+  template: |
+    {{role "system"}}This is the system prompt
+  data:
+    history: [{ role: "user", content: [{ text: "hello" }] }]
+  tests:
+    - desc: inserts history after system prompt
+      expect:
+        messages:
+          [
+            { role: "system", content: [{ text: "This is the system prompt\n" }] },
+            { role: "user", content: [{ text: "hello" }] },
+          ]

@@ -3,17 +3,43 @@ import * as helpers from "./helpers";
 import { DataArgument, PromptMetadata } from "./types";
 import { parseDocument, toMessages } from "./parse";
 
-export interface DotpromptOptions {}
+export interface DotpromptOptions {
+  /** A default model to use if none is supplied. */
+  defaultModel?: string;
+  /** Assign a set of default configuration options to be used with a particular model. */
+  modelConfigs?: Record<string, object>;
+  /** Helpers to pre-register. */
+  helpers?: Record<string, Handlebars.HelperDelegate>;
+  /** Partials to pre-register. */
+  partials?: Record<string, string>;
+}
 
 export class DotpromptEnvironment {
   private handlebars: typeof Handlebars;
   private knownHelpers: Record<string, true> = {};
+  private defaultModel?: string;
+  private modelConfigs: Record<string, object> = {};
 
   constructor(options?: DotpromptOptions) {
     this.handlebars = Handlebars.noConflict();
+    this.modelConfigs = options?.modelConfigs || this.modelConfigs;
+    this.defaultModel = options?.defaultModel;
+
     for (const key in helpers) {
-      this.knownHelpers[key] = true;
+      this.defineHelper(key, helpers[key as keyof typeof helpers]);
       this.handlebars.registerHelper(key, helpers[key as keyof typeof helpers]);
+    }
+
+    if (options?.helpers) {
+      for (const key in options.helpers) {
+        this.defineHelper(key, options.helpers[key]);
+      }
+    }
+
+    if (options?.partials) {
+      for (const key in options.partials) {
+        this.definePartial(key, options.partials[key]);
+      }
     }
   }
 
@@ -40,7 +66,7 @@ export class DotpromptEnvironment {
     return this.compile<Variables, ModelConfig>(source)(data, options);
   }
 
-  private mergeMetadata<ModelConfig = Record<string, any>>(
+  private renderMetadata<ModelConfig = Record<string, any>>(
     base: PromptMetadata<ModelConfig>,
     ...merges: (PromptMetadata<ModelConfig> | undefined)[]
   ): PromptMetadata<ModelConfig> {
@@ -49,6 +75,12 @@ export class DotpromptEnvironment {
       const config = base.config || ({} as ModelConfig);
       base = { ...base, ...merges[i] };
       base.config = { ...config, ...(merges[i]?.config || {}) };
+    }
+    delete base.input;
+    for (const key in base) {
+      const val = base[key as keyof typeof base];
+      if (val === undefined || val === null || Object.keys(val).length === 0)
+        delete base[key as keyof typeof base];
     }
     return base;
   }
@@ -62,18 +94,25 @@ export class DotpromptEnvironment {
     });
 
     return (data: DataArgument, options?: PromptMetadata<ModelConfig>) => {
-      const metadata: PromptMetadata<ModelConfig> = { ...parsedMetadata, ...options };
+      const selectedModel = options?.model || parsedMetadata.model || this.defaultModel;
+      const modelConfig = this.modelConfigs[selectedModel!] as ModelConfig;
+      const mergedMetadata = this.renderMetadata<ModelConfig>(
+        modelConfig ? { config: modelConfig } : {},
+        parsedMetadata,
+        options
+      );
+
       const renderedString = renderString(
         { ...(options?.input?.default || {}), ...data.input },
         {
           data: {
-            metadata: { prompt: metadata, context: data.context, history: data.history },
+            metadata: { prompt: mergedMetadata, context: data.context, history: data.history },
           },
         }
       );
       return {
-        ...this.mergeMetadata(parsedMetadata, options),
-        messages: toMessages<ModelConfig>(renderedString, data, metadata),
+        ...mergedMetadata,
+        messages: toMessages<ModelConfig>(renderedString, data),
       };
     };
   }
