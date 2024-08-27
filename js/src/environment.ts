@@ -1,6 +1,6 @@
 import Handlebars from "handlebars";
 import * as helpers from "./helpers";
-import { DataArgument, PromptMetadata } from "./types";
+import { DataArgument, PromptMetadata, ToolDefinition } from "./types";
 import { parseDocument, toMessages } from "./parse";
 
 export interface DotpromptOptions {
@@ -12,6 +12,10 @@ export interface DotpromptOptions {
   helpers?: Record<string, Handlebars.HelperDelegate>;
   /** Partials to pre-register. */
   partials?: Record<string, string>;
+  /** Provide a static mapping of tool definitions that should be used when resolving tool names. */
+  tools?: Record<string, ToolDefinition>;
+  // /** Provide a lookup implementation to resolve tool names to definitions. */
+  // toolResolver?: (name: string) => Promise<ToolDefinition | null>;
 }
 
 export class DotpromptEnvironment {
@@ -19,11 +23,14 @@ export class DotpromptEnvironment {
   private knownHelpers: Record<string, true> = {};
   private defaultModel?: string;
   private modelConfigs: Record<string, object> = {};
+  private tools: Record<string, ToolDefinition> = {};
+  private toolResolver?: (name: string) => Promise<ToolDefinition | null>;
 
   constructor(options?: DotpromptOptions) {
     this.handlebars = Handlebars.noConflict();
     this.modelConfigs = options?.modelConfigs || this.modelConfigs;
     this.defaultModel = options?.defaultModel;
+    // this.toolResolver = options?.toolResolver;
 
     for (const key in helpers) {
       this.defineHelper(key, helpers[key as keyof typeof helpers]);
@@ -54,6 +61,10 @@ export class DotpromptEnvironment {
     return this;
   }
 
+  defineTool(def: ToolDefinition): this {
+    this.tools[def.name] = def;
+  }
+
   parse<ModelConfig = Record<string, any>>(source: string) {
     return parseDocument<ModelConfig>(source);
   }
@@ -82,7 +93,29 @@ export class DotpromptEnvironment {
       if (val === undefined || val === null || Object.keys(val).length === 0)
         delete base[key as keyof typeof base];
     }
+
+    base = this.resolveTools(base);
     return base;
+  }
+
+  private resolveTools<ModelConfig>(
+    base: PromptMetadata<ModelConfig>
+  ): PromptMetadata<ModelConfig> {
+    const out = { ...base };
+    // Resolve tools that are already registered into toolDefs, leave unregistered tools alone.
+    if (out.tools) {
+      const outTools: string[] = [];
+      out.tools?.forEach((toolName) => {
+        if (this.tools[toolName]) {
+          out.toolDefs = base.toolDefs || [];
+          out.toolDefs.push(this.tools[toolName]);
+        } else {
+          outTools.push(toolName);
+        }
+      });
+      out.tools = outTools;
+    }
+    return out;
   }
 
   compile<Variables = any, ModelConfig = Record<string, any>>(source: string) {
