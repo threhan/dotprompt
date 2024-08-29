@@ -80,17 +80,10 @@ export function toMessages<ModelConfig = Record<string, any>>(
 
 function insertHistory(messages: Message[], history?: Message[]) {
   if (!history || messages.find((m) => m.metadata?.purpose === "history")) return messages;
-  let lastUserMessage = -1;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === "user") {
-      lastUserMessage = i;
-      break;
-    }
+  if (messages.at(-1)?.role === "user") {
+    return [...messages.slice(0, -1), ...history, messages.at(-1)];
   }
-  if (lastUserMessage === -1) {
-    return [...messages, ...history];
-  }
-  return [...messages.slice(0, lastUserMessage), ...history, ...messages.slice(lastUserMessage)];
+  return [...messages, ...history];
 }
 
 const PART_REGEX = /(<<<dotprompt:(?:media:url|section).*?)>>>/g;

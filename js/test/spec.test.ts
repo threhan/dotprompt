@@ -28,7 +28,7 @@ for (const file of files) {
         test(`${suiteName} ${s.name} ${tc.desc}`, () => {
           const env = new DotpromptEnvironment();
           const result = env.render(s.template, { ...s.data, ...tc.data }, tc.options);
-          assert.deepStrictEqual(result, tc.expect);
+          assert.deepStrictEqual(result, { ...tc.expect, config: tc.expect.config || {} });
         });
       }
     }

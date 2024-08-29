@@ -2,6 +2,8 @@ import Handlebars from "handlebars";
 import * as helpers from "./helpers";
 import { DataArgument, PromptMetadata, ToolDefinition } from "./types";
 import { parseDocument, toMessages } from "./parse";
+import { picoschema } from "./picoschema";
+import { removeUndefinedFields } from "./util";
 
 export interface DotpromptOptions {
   /** A default model to use if none is supplied. */
@@ -16,6 +18,7 @@ export interface DotpromptOptions {
   tools?: Record<string, ToolDefinition>;
   // /** Provide a lookup implementation to resolve tool names to definitions. */
   // toolResolver?: (name: string) => Promise<ToolDefinition | null>;
+  // TODO: schema registry for picoschema
 }
 
 export class DotpromptEnvironment {
@@ -77,25 +80,29 @@ export class DotpromptEnvironment {
     return this.compile<Variables, ModelConfig>(source)(data, options);
   }
 
+  private renderPicoschema<ModelConfig>(
+    meta: PromptMetadata<ModelConfig>
+  ): PromptMetadata<ModelConfig> {
+    if (!meta.output?.schema) return meta;
+    return { ...meta, output: { ...meta.output, schema: picoschema(meta.output.schema) } };
+  }
+
   private renderMetadata<ModelConfig = Record<string, any>>(
     base: PromptMetadata<ModelConfig>,
     ...merges: (PromptMetadata<ModelConfig> | undefined)[]
   ): PromptMetadata<ModelConfig> {
-    for (let i = 1; i < merges.length; i++) {
+    let out = { ...base };
+    for (let i = 0; i < merges.length; i++) {
       if (!merges[i]) continue;
-      const config = base.config || ({} as ModelConfig);
-      base = { ...base, ...merges[i] };
-      base.config = { ...config, ...(merges[i]?.config || {}) };
+      const config = out.config || ({} as ModelConfig);
+      out = { ...out, ...merges[i] };
+      out.config = { ...config, ...(merges[i]?.config || {}) };
     }
-    delete base.input;
-    for (const key in base) {
-      const val = base[key as keyof typeof base];
-      if (val === undefined || val === null || Object.keys(val).length === 0)
-        delete base[key as keyof typeof base];
-    }
-
-    base = this.resolveTools(base);
-    return base;
+    delete out.input;
+    out = removeUndefinedFields(out);
+    out = this.resolveTools(out);
+    out = this.renderPicoschema(out);
+    return out;
   }
 
   private resolveTools<ModelConfig>(
