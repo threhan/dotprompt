@@ -17,12 +17,12 @@
 import type { SocialObjects } from "@/lib/types";
 
 export const SITE = {
-  website: "https://dotprompt.genkit.dev", // replace this with your deployed domain
+  website: "https://google.github.io/dotprompt", // replace this with your deployed domain
   author: "Firebase",
   desc: "Dotprompt: The executable GenAI prompt format.",
   title: "Dotprompt",
   ogImage: "og-image.jpg",
-  repo: "https://github.com/firebase/genkit",
+  repo: "https://github.com/google/dotprompt",
 };
 
 export const LOCALE = {
