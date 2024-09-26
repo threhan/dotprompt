@@ -1,15 +1,15 @@
 {
-  "name": "celestialdocs",
+  "name": "dotprompt-docs",
   "type": "module",
   "version": "0.0.5",
-  "description": "Documentation template using AstroJS and Shadcn",
-  "author": "Hyperoot <rajesh@hyperoot.dev>",
-  "license": "MIT",
+  "description": "Documentation website for Dotprompt.",
+  "author": "Firebase",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HYP3R00T/CelestialDocs"
+    "url": "https://github.com/google/dotprompt"
   },
-  "homepage": "https://celestialdocs.hyperoot.dev/",
+  "homepage": "https://google.github.io/dotprompt/",
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
