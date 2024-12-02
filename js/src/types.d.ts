@@ -102,3 +102,13 @@ export interface DataArgument<Variables = any, State = any> {
   state?: State;
   history?: Message[];
 }
+
+export type JSONSchema = any;
+
+export interface SchemaResolver {
+  (schemaName: string): JSONSchema | null;
+}
+
+export interface ToolResolver {
+  (toolName: string): ToolDefinition | null;
+}

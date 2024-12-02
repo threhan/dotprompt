@@ -10,6 +10,13 @@
       "template": {
         "type": "string"
       },
+      "schemas": {
+        "type": "object",
+        "description": "Registry of schemas to be made available for lookup.",
+        "additionalProperties": {
+          "type": "object"
+        }
+      },
       "tests": {
         "type": "array",
         "items": {

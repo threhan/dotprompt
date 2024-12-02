@@ -17,9 +17,10 @@
 import test from "node:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { parse } from "yaml";
-import { join, relative, sep } from "node:path";
+import { join, relative } from "node:path";
 import { DotpromptEnvironment } from "../src/environment";
 import assert from "node:assert";
+import { JSONSchema, ToolDefinition } from "../src/types";
 
 const specDir = join(__dirname, "..", "..", "spec");
 const files = readdirSync(specDir, { recursive: true, withFileTypes: true });
@@ -28,7 +29,9 @@ interface SpecSuite {
   name: string;
   template: string;
   data?: object;
-  tests: { desc?: string; data: object; expect: object; options: object }[];
+  schemas?: Record<string, JSONSchema>;
+  tools?: Record<string, ToolDefinition>;
+  tests: { desc?: string; data: object; expect: any; options: object }[];
 }
 
 for (const file of files) {
@@ -42,7 +45,10 @@ for (const file of files) {
     for (const s of suites) {
       for (const tc of s.tests) {
         test(`${suiteName} ${s.name} ${tc.desc}`, () => {
-          const env = new DotpromptEnvironment();
+          const env = new DotpromptEnvironment({
+            schemas: s.schemas,
+            tools: s.tools,
+          });
           const result = env.render(s.template, { ...s.data, ...tc.data }, tc.options);
           assert.deepStrictEqual(result, { ...tc.expect, config: tc.expect.config || {} });
         });

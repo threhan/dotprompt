@@ -16,7 +16,7 @@
 
 import Handlebars from "handlebars";
 import * as helpers from "./helpers";
-import { DataArgument, PromptMetadata, ToolDefinition } from "./types";
+import { DataArgument, JSONSchema, PromptMetadata, SchemaResolver, ToolDefinition, ToolResolver } from "./types";
 import { parseDocument, toMessages } from "./parse";
 import { picoschema } from "./picoschema";
 import { removeUndefinedFields } from "./util";
@@ -32,9 +32,12 @@ export interface DotpromptOptions {
   partials?: Record<string, string>;
   /** Provide a static mapping of tool definitions that should be used when resolving tool names. */
   tools?: Record<string, ToolDefinition>;
-  // /** Provide a lookup implementation to resolve tool names to definitions. */
-  // toolResolver?: (name: string) => Promise<ToolDefinition | null>;
-  // TODO: schema registry for picoschema
+  /** Provide a lookup implementation to resolve tool names to definitions. */
+  toolResolver?: ToolResolver;
+  /** Provide a static mapping of schema names to their JSON Schema definitions. */
+  schemas?: Record<string, JSONSchema>;
+  /** Provide a lookup implementation to resolve schema names to JSON schema definitions. */
+  schemaResolver?: SchemaResolver;
 }
 
 export class DotpromptEnvironment {
@@ -43,13 +46,18 @@ export class DotpromptEnvironment {
   private defaultModel?: string;
   private modelConfigs: Record<string, object> = {};
   private tools: Record<string, ToolDefinition> = {};
-  private toolResolver?: (name: string) => Promise<ToolDefinition | null>;
+  private toolResolver?: ToolResolver;
+  private schemas: Record<string, JSONSchema> = {};
+  private schemaResolver?: SchemaResolver;
 
   constructor(options?: DotpromptOptions) {
     this.handlebars = Handlebars.noConflict();
     this.modelConfigs = options?.modelConfigs || this.modelConfigs;
     this.defaultModel = options?.defaultModel;
-    // this.toolResolver = options?.toolResolver;
+    this.tools = options?.tools || {};
+    this.toolResolver = options?.toolResolver;
+    this.schemas = options?.schemas || {};
+    this.schemaResolver = options?.schemaResolver;
 
     for (const key in helpers) {
       this.defineHelper(key, helpers[key as keyof typeof helpers]);
@@ -82,6 +90,7 @@ export class DotpromptEnvironment {
 
   defineTool(def: ToolDefinition): this {
     this.tools[def.name] = def;
+    return this;
   }
 
   parse<ModelConfig = Record<string, any>>(source: string) {
@@ -100,7 +109,18 @@ export class DotpromptEnvironment {
     meta: PromptMetadata<ModelConfig>
   ): PromptMetadata<ModelConfig> {
     if (!meta.output?.schema) return meta;
-    return { ...meta, output: { ...meta.output, schema: picoschema(meta.output.schema) } };
+    return { ...meta, output: {
+      ...meta.output,
+      schema: picoschema(meta.output.schema, {
+        schemaResolver: this.wrappedSchemaResolver.bind(this)
+      })
+    } };
+  }
+
+  private wrappedSchemaResolver(name: string): JSONSchema | null {
+    if (this.schemas[name]) return this.schemas[name];
+    if (this.schemaResolver) this.schemaResolver(name);
+    return null;
   }
 
   private renderMetadata<ModelConfig = Record<string, any>>(
@@ -132,6 +152,11 @@ export class DotpromptEnvironment {
         if (this.tools[toolName]) {
           out.toolDefs = base.toolDefs || [];
           out.toolDefs.push(this.tools[toolName]);
+        } else if (this.toolResolver) {
+          const resolvedTool = this.toolResolver(toolName);
+          if (!resolvedTool) {
+            throw new Error(`Dotprompt: Unable to resolve tool '${toolName}' to a recognized tool definition.`);
+          }
         } else {
           outTools.push(toolName);
         }

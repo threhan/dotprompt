@@ -282,3 +282,49 @@
             additionalProperties: { type: number, description: "lucky number" }
             properties: {}
             type: object
+- name: named_schema_override_description
+  template: |
+    ---
+    output:
+      schema: Foo, an overridden foo
+    ---
+  schemas:
+    Foo:
+      type: number
+      description: a foo
+  tests:
+    - desc: returns as expected
+      expect:
+        messages: []
+        output:
+          schema:
+            type: number
+            description: an overridden foo
+- name: nested_named_schema
+  template: |
+    ---
+    output:
+      schema:
+        foo: Foo
+        foo2?: Foo, this one is optional
+    ---
+  schemas:
+    Foo:
+      type: number
+      description: a foo
+  tests:
+    - desc: returns as expected
+      expect:
+        messages: []
+        output:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [foo]
+            properties:
+              foo: 
+                type: number
+                description: a foo
+              foo2:
+                type: [number, 'null']
+                description: this one is optional
