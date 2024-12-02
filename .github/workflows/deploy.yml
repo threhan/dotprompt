@@ -19,6 +19,8 @@ on:
   # Using a different branch name? Replace `main` with your branch’s name
   push:
     branches: [main]
+    paths:
+      - "third_party/docsite/**"
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
 
@@ -37,9 +39,9 @@ jobs:
       - name: Install, build, and upload your site
         uses: withastro/action@v3
         with:
-          path: site # The root location of your Astro project inside the repository. (optional)
-          # node-version: 20 # The specific version of Node that should be used to build your site. Defaults to 20. (optional)
-          # package-manager: pnpm@latest # The Node package manager that should be used to install dependencies and build your site. Automatically detected based on your lockfile. (optional)
+          path: third_party/docsite
+          node-version: 22
+          package-manager: pnpm@latest
 
   deploy:
     needs: build

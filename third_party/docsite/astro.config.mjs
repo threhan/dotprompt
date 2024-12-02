@@ -23,7 +23,7 @@ import mdx from "@astrojs/mdx";
 // https://astro.build/config
 export default defineConfig({
   site: "https://google.github.io",
-  base: "/dotprompt/",
+  base: "/dotprompt",
   markdown: {
     smartypants: true,
     syntaxHighlight: "shiki",
