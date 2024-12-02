@@ -14,4 +14,4 @@
 
 packages:
   - js
-  - site
+  - third_party/docsite
