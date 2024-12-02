@@ -33,7 +33,7 @@ function sortChildren(children: MenuItemWithDraft[]) {
         `.trim();
         return (
           <li class="w-full">
-            <a href={`/${item.slug}`} class:list={[className, "text-sm leading-none w-full"]}>
+            <a href={`/dotprompt/${item.slug}`} class:list={[className, "text-sm leading-none w-full"]}>
               {label}
             </a>
             {item.children.length > 0 && (
