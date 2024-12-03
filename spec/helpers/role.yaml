@@ -46,7 +46,7 @@
   template: |
     {{role "system"}}This is the system prompt
   data:
-    history: [{ role: "user", content: [{ text: "hello" }] }]
+    messages: [{ role: "user", content: [{ text: "hello" }] }]
   tests:
     - desc: inserts history after system prompt
       expect:

@@ -98,9 +98,9 @@ export interface Document extends HasMetadata {
 
 export interface DataArgument<Variables = any, State = any> {
   input?: Variables;
-  context?: Document[];
+  docs?: Document[];
   state?: State;
-  history?: Message[];
+  messages?: Message[];
 }
 
 export type JSONSchema = any;

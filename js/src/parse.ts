@@ -66,7 +66,7 @@ export function toMessages<ModelConfig = Record<string, any>>(
       }
     } else if (piece.startsWith("<<<dotprompt:history")) {
       messageSources.push(
-        ...(data?.history?.map((m) => {
+        ...(data?.messages?.map((m) => {
           return {
             ...m,
             metadata: { ...(m.metadata || {}), purpose: "history" },
@@ -91,7 +91,7 @@ export function toMessages<ModelConfig = Record<string, any>>(
       return out;
     });
 
-  return insertHistory(messages, data?.history);
+  return insertHistory(messages, data?.messages);
 }
 
 function insertHistory(messages: Message[], history: Message[] = []) {

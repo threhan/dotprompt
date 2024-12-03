@@ -20,7 +20,7 @@ import { parse } from "yaml";
 import { join, relative } from "node:path";
 import { DotpromptEnvironment } from "../src/environment";
 import assert from "node:assert";
-import { JSONSchema, ToolDefinition } from "../src/types";
+import { DataArgument, JSONSchema, ToolDefinition } from "../src/types";
 
 const specDir = join(__dirname, "..", "..", "spec");
 const files = readdirSync(specDir, { recursive: true, withFileTypes: true });
@@ -28,10 +28,10 @@ const files = readdirSync(specDir, { recursive: true, withFileTypes: true });
 interface SpecSuite {
   name: string;
   template: string;
-  data?: object;
+  data?: DataArgument;
   schemas?: Record<string, JSONSchema>;
   tools?: Record<string, ToolDefinition>;
-  tests: { desc?: string; data: object; expect: any; options: object }[];
+  tests: { desc?: string; data: DataArgument; expect: any; options: object }[];
 }
 
 for (const file of files) {
