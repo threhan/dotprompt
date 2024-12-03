@@ -96,19 +96,40 @@ export interface Document extends HasMetadata {
   content: Part[];
 }
 
+/**
+ * DataArgument provides all of the information necessary to render a
+ * template at runtime.
+ **/
 export interface DataArgument<Variables = any, State = any> {
+  /** Input variables for the prompt template. */
   input?: Variables;
+  /** Relevant documents. */
   docs?: Document[];
-  state?: State;
+  /** Previous messages in the history of a multi-turn conversation. */
   messages?: Message[];
+  /**
+   * Items in the context argument are exposed as `@` variables, e.g.
+   * `context: {state: {...}}` is exposed as `@state`.
+   **/
+  context?: Record<string, any>;
 }
 
 export type JSONSchema = any;
 
+/**
+ * SchemaResolver is a function that can resolve a provided schema name to
+ * an underlying JSON schema, utilized for shorthand to a schema library
+ * provided by an external tool.
+ **/
 export interface SchemaResolver {
   (schemaName: string): JSONSchema | null | Promise<JSONSchema | null>;
 }
 
+/**
+ * SchemaResolver is a function that can resolve a provided tool name to
+ * an underlying ToolDefinition, utilized for shorthand to a tool registry
+ * provided by an external library.
+ **/
 export interface ToolResolver {
   (toolName: string): ToolDefinition | null | Promise<ToolDefinition | null>;
 }

@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-addlicense -c "Google LLC" -l apache -ignore '**/node_modules/**' -ignore 'third_party/**' .
+addlicense -c "Google LLC" -l apache -ignore '**/node_modules/**' -ignore 'third_party/**' -ignore '**/pnpm-lock.yaml' .

@@ -191,7 +191,8 @@ export class DotpromptEnvironment {
         { ...(options?.input?.default || {}), ...data.input },
         {
           data: {
-            metadata: { prompt: mergedMetadata, context: data.docs, history: data.messages },
+            metadata: { prompt: mergedMetadata, docs: data.docs, messages: data.messages },
+            ...(data.context || {})
           },
         }
       );
