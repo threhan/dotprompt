@@ -109,7 +109,7 @@ The following helpers **MUST** be included in all implementations of Dotprompt a
 #### `history`
 
 - **Syntax:** `{{history}}`
-- **Description:** Inserts the conversation history in multi-turn prompts.
+- **Description:** Inserts the conversation history (passed as `messages` when rendering the template) for multi-turn prompts.
 - **Example:**
   ```handlebars
   {{role "system"}}
@@ -181,3 +181,18 @@ All Dotprompt implementations **MUST** allow for the definition of custom helper
 
 - **Basic Custom Helper:** `{{customHelperName arg1 "arg2"}}`
 - **Named Arguments:** `{{customHelperName arg1=var1 arg2="var2"}}`
+
+## Context Variables
+
+When rendering a template, additional contextual information is provided as variables with a special `@` prefix. Some of these are built-in:
+
+- `@root`: references the root variable context regardless of current `this`
+- `@first`: `true` when iterating the first item of an `#each` block.
+- `@last`: `true` when iterating the last item of an `#each` block.
+- `@key`: key name for the current iteration of an `#each` block.
+- `@metadata`: provides access to metadata of the currently running prompt and passed in data arguments.
+  - `@metadata.prompt`: access to the frontmatter configuration of the current prompt.
+  - `@metadata.docs`: access to the passed in document context of the current execution.
+  - `@metadata.messages`: access to the message history of the current execution.
+
+In addition to the above context variables, you can provide a `context` argument when rendering a template to add additional contextual information. for example, a context argument of `{state: {name: 'Evelyn'}, isAdmin: true}` would create `@state` and `@isAdmin` variables accessible from inside the prompt.
