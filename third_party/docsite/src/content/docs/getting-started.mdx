@@ -64,23 +64,19 @@ The remainder of this getting started guide will use the reference Dotprompt imp
 First, install the necessary packages using NPM. Here we'll be using the [Gemini API](https://ai.google.dev/gemini-api) from Google as our model implementation:
 
 ```bash
-npm i \
-  @genkit-ai/core \
-  @genkit-ai/ai \
-  @genkit-ai/dotprompt \
-  @genkit-ai/googleai
+npm i genkit @genkit-ai/googleai
 ```
 
 After installation, you'll need to set up your environment and initialize the Dotprompt system. Here's a basic setup:
 
 ```typescript
-import { configureGenkit } from '@genkit-ai/core';
+import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { dotprompt, promptRef } from '@genkit-ai/dotprompt';
 
 // Configure Genkit with the GoogleAI provider and Dotprompt plugin
-configureGenkit({
-  plugins: [googleAI(), dotprompt()],
+const ai = genkit({
+  plugins: [googleAI()],
+  // promptDir: 'prompts', /* this is the default */
 });
 
 // Now you're ready to use Dotprompt!
@@ -90,18 +86,16 @@ configureGenkit({
 You will need to set your Google AI API key to the `GOOGLE_API_KEY` environment variable or pass it as an option to the `googleAI()` plugin configuration.
 </Callout>
 
-With this setup, you can now create `.prompt` files in your project and use them in your code. For example, if you have a file named `extractInfo.prompt` with the content from the earlier example, you can use it like this:
+With this setup, you can now create `.prompt` files in a `prompts` directory in your project and use them in your code. For example, if you have a file named `extractInfo.prompt` with the content from the earlier example, you can use it like this:
 
 ```typescript
-const extractInfoPrompt = promptRef('extractInfo');
+const extractInfoPrompt = ai.prompt('extractInfo');
 
-const result = await extractInfoPrompt.generate({
-  input: {
-    text: "John Doe is a 35-year-old software engineer living in New York.",
-  },
+const {output} = await extractInfoPrompt({
+  text: "John Doe is a 35-year-old software engineer living in New York.",
 });
 
-console.log(result.output());
+console.log(output);
 // Output: { "name": "John Doe", "age": 35, "occupation": "software engineer" }
 ```
 

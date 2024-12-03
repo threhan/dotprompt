@@ -94,10 +94,10 @@ export function toMessages<ModelConfig = Record<string, any>>(
   return insertHistory(messages, data?.messages);
 }
 
-function insertHistory(messages: Message[], history: Message[] = []) {
+function insertHistory(messages: Message[], history: Message[] = []): Message[] {
   if (!history || messages.find((m) => m.metadata?.purpose === "history")) return messages;
   if (messages.at(-1)?.role === "user") {
-    return [...messages.slice(0, -1), ...history, messages.at(-1)];
+    return [...messages.slice(0, -1)!, ...history!, messages.at(-1)!];
   }
   return [...messages, ...history];
 }
@@ -110,7 +110,6 @@ function toParts(source: string): Part[] {
   for (let i = 0; i < pieces.length; i++) {
     const piece = pieces[i];
     if (piece.startsWith("<<<dotprompt:media:")) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [_, url, contentType] = piece.split(" ");
       const part: MediaPart = { media: { url } };
       if (contentType) part.media.contentType = contentType;
