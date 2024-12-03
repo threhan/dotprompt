@@ -22,5 +22,11 @@
     "handlebars": "^4.7.8",
     "yaml": "^2.5.0"
   },
-  "packageManager": "pnpm@9.13.2+sha256.ccce81bf7498c5f0f80e31749c1f8f03baba99d168f64590fc7e13fad3ea1938"
+  "packageManager": "pnpm@9.13.2+sha256.ccce81bf7498c5f0f80e31749c1f8f03baba99d168f64590fc7e13fad3ea1938",
+  "pnpm": {
+    "overrides": {
+      "rollup@>=4.0.0 <4.22.4": ">=4.22.4",
+      "cross-spawn@>=7.0.0 <7.0.5": ">=7.0.5"
+    }
+  }
 }
