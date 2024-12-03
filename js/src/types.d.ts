@@ -106,9 +106,9 @@ export interface DataArgument<Variables = any, State = any> {
 export type JSONSchema = any;
 
 export interface SchemaResolver {
-  (schemaName: string): JSONSchema | null;
+  (schemaName: string): JSONSchema | null | Promise<JSONSchema | null>;
 }
 
 export interface ToolResolver {
-  (toolName: string): ToolDefinition | null;
+  (toolName: string): ToolDefinition | null | Promise<ToolDefinition | null>;
 }

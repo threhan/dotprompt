@@ -97,36 +97,37 @@ export class DotpromptEnvironment {
     return parseDocument<ModelConfig>(source);
   }
 
-  render<Variables = Record<string, any>, ModelConfig = Record<string, any>>(
+  async render<Variables = Record<string, any>, ModelConfig = Record<string, any>>(
     source: string,
     data: DataArgument<Variables> = {},
     options?: PromptMetadata<ModelConfig>
   ) {
-    return this.compile<Variables, ModelConfig>(source)(data, options);
+    const renderer = await this.compile<Variables, ModelConfig>(source);
+    return renderer(data, options);
   }
 
-  private renderPicoschema<ModelConfig>(
+  private async renderPicoschema<ModelConfig>(
     meta: PromptMetadata<ModelConfig>
-  ): PromptMetadata<ModelConfig> {
+  ): Promise<PromptMetadata<ModelConfig>> {
     if (!meta.output?.schema) return meta;
     return { ...meta, output: {
       ...meta.output,
-      schema: picoschema(meta.output.schema, {
+      schema: await picoschema(meta.output.schema, {
         schemaResolver: this.wrappedSchemaResolver.bind(this)
       })
     } };
   }
 
-  private wrappedSchemaResolver(name: string): JSONSchema | null {
+  private async wrappedSchemaResolver(name: string): Promise<JSONSchema | null> {
     if (this.schemas[name]) return this.schemas[name];
-    if (this.schemaResolver) this.schemaResolver(name);
+    if (this.schemaResolver) return await this.schemaResolver(name);
     return null;
   }
 
-  private renderMetadata<ModelConfig = Record<string, any>>(
+  private async renderMetadata<ModelConfig = Record<string, any>>(
     base: PromptMetadata<ModelConfig>,
     ...merges: (PromptMetadata<ModelConfig> | undefined)[]
-  ): PromptMetadata<ModelConfig> {
+  ): Promise<PromptMetadata<ModelConfig>> {
     let out = { ...base };
     for (let i = 0; i < merges.length; i++) {
       if (!merges[i]) continue;
@@ -136,37 +137,40 @@ export class DotpromptEnvironment {
     }
     delete out.input;
     out = removeUndefinedFields(out);
-    out = this.resolveTools(out);
-    out = this.renderPicoschema(out);
+    out = await this.resolveTools(out);
+    out = await this.renderPicoschema(out);
     return out;
   }
 
-  private resolveTools<ModelConfig>(
+  private async resolveTools<ModelConfig>(
     base: PromptMetadata<ModelConfig>
-  ): PromptMetadata<ModelConfig> {
+  ): Promise<PromptMetadata<ModelConfig>> {
     const out = { ...base };
     // Resolve tools that are already registered into toolDefs, leave unregistered tools alone.
     if (out.tools) {
       const outTools: string[] = [];
-      out.tools?.forEach((toolName) => {
+      out.toolDefs = out.toolDefs || [];
+      
+      await Promise.all(out.tools.map(async (toolName) => {
         if (this.tools[toolName]) {
-          out.toolDefs = base.toolDefs || [];
-          out.toolDefs.push(this.tools[toolName]);
+          out.toolDefs!.push(this.tools[toolName]);
         } else if (this.toolResolver) {
-          const resolvedTool = this.toolResolver(toolName);
+          const resolvedTool = await this.toolResolver(toolName);
           if (!resolvedTool) {
             throw new Error(`Dotprompt: Unable to resolve tool '${toolName}' to a recognized tool definition.`);
           }
+          out.toolDefs!.push(resolvedTool);
         } else {
           outTools.push(toolName);
         }
-      });
+      }));
+      
       out.tools = outTools;
     }
     return out;
   }
 
-  compile<Variables = any, ModelConfig = Record<string, any>>(source: string) {
+  async compile<Variables = any, ModelConfig = Record<string, any>>(source: string) {
     const { metadata: parsedMetadata, template } = this.parse<ModelConfig>(source);
 
     const renderString = this.handlebars.compile<Variables>(template, {
@@ -174,10 +178,10 @@ export class DotpromptEnvironment {
       knownHelpersOnly: true,
     });
 
-    return (data: DataArgument, options?: PromptMetadata<ModelConfig>) => {
+    return async (data: DataArgument, options?: PromptMetadata<ModelConfig>) => {
       const selectedModel = options?.model || parsedMetadata.model || this.defaultModel;
       const modelConfig = this.modelConfigs[selectedModel!] as ModelConfig;
-      const mergedMetadata = this.renderMetadata<ModelConfig>(
+      const mergedMetadata = await this.renderMetadata<ModelConfig>(
         modelConfig ? { config: modelConfig } : {},
         parsedMetadata,
         options

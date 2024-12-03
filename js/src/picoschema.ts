@@ -24,7 +24,7 @@ export interface PicoschemaOptions {
   schemaResolver?: SchemaResolver;
 }
 
-export function picoschema(schema: unknown, options?: PicoschemaOptions) {
+export async function picoschema(schema: unknown, options?: PicoschemaOptions) {
   return new PicoschemaParser(options).parse(schema);
 }
 
@@ -35,19 +35,19 @@ export class PicoschemaParser {
     this.schemaResolver = options?.schemaResolver;
   }
 
-  private mustResolveSchema(schemaName: string): JSONSchema {
+  private async mustResolveSchema(schemaName: string): Promise<JSONSchema> {
     if (!this.schemaResolver) {
       throw new Error(`Picoschema: unsupported scalar type '${schemaName}'.`);
     }
 
-    const val = this.schemaResolver(schemaName);
+    const val = await this.schemaResolver(schemaName);
     if (!val) {
       throw new Error(`Picoschema: could not find schema with name '${schemaName}'`);
     }
     return val;
   }
 
-  parse(schema: unknown): JSONSchema | null {
+  async parse(schema: unknown): Promise<JSONSchema | null> {
     if (!schema) return null;
 
     // Allow for top-level named schemas
@@ -58,7 +58,7 @@ export class PicoschemaParser {
         if (description) out.description = description;
         return out;
       }
-      const resolvedSchema = this.mustResolveSchema(type);
+      const resolvedSchema = await this.mustResolveSchema(type);
       return {...resolvedSchema, description};
     }
 
@@ -74,11 +74,11 @@ export class PicoschemaParser {
     return this.parsePico(schema);
   }
 
-  private parsePico(obj: any, path: string[] = []): JSONSchema {
+  private async parsePico(obj: any, path: string[] = []): Promise<JSONSchema> {
     if (typeof obj === "string") {
       const [type, description] = extractDescription(obj);
       if (!JSON_SCHEMA_SCALAR_TYPES.includes(type)) {
-        let resolvedSchema = this.mustResolveSchema(type);
+        let resolvedSchema = await this.mustResolveSchema(type);
         if (description) resolvedSchema.description = description;
         return resolvedSchema;
       }
@@ -104,7 +104,7 @@ export class PicoschemaParser {
     for (const key in obj) {
       // wildcard property
       if (key === WILDCARD_PROPERTY_NAME) {
-        schema.additionalProperties = this.parsePico(obj[key], [...path, key]);
+        schema.additionalProperties = await this.parsePico(obj[key], [...path, key]);
         continue;
       }
   
@@ -117,7 +117,7 @@ export class PicoschemaParser {
       }
   
       if (!typeInfo) {
-        const prop = {...this.parsePico(obj[key], [...path, key])};
+        const prop = {...await this.parsePico(obj[key], [...path, key])};
         // make all optional fields also nullable
         if (isOptional && typeof prop.type === "string") {
           prop.type = [prop.type, "null"];
@@ -130,10 +130,10 @@ export class PicoschemaParser {
       if (type === "array") {
         schema.properties[propertyName] = {
           type: isOptional ? ["array", "null"] : "array",
-          items: this.parsePico(obj[key], [...path, key]),
+          items: await this.parsePico(obj[key], [...path, key]),
         };
       } else if (type === "object") {
-        const prop = this.parsePico(obj[key], [...path, key]);
+        const prop = await this.parsePico(obj[key], [...path, key]);
         if (isOptional) prop.type = [prop.type, "null"];
         schema.properties[propertyName] = prop;
       } else if (type === "enum") {
@@ -159,5 +159,3 @@ function extractDescription(input: string): [string, string | null] {
   const match = input.match(/(.*?), *(.*)$/);
   return [match![1], match![2]];
 }
-
-

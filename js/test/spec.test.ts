@@ -44,12 +44,12 @@ for (const file of files) {
     const suites: SpecSuite[] = parse(readFileSync(join(file.path, file.name), "utf-8"));
     for (const s of suites) {
       for (const tc of s.tests) {
-        test(`${suiteName} ${s.name} ${tc.desc}`, () => {
+        test(`${suiteName} ${s.name} ${tc.desc}`, async () => {
           const env = new DotpromptEnvironment({
             schemas: s.schemas,
             tools: s.tools,
           });
-          const result = env.render(s.template, { ...s.data, ...tc.data }, tc.options);
+          const result = await env.render(s.template, { ...s.data, ...tc.data }, tc.options);
           assert.deepStrictEqual(result, { ...tc.expect, config: tc.expect.config || {} });
         });
       }
