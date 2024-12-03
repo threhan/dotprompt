@@ -25,22 +25,12 @@ This combination of features makes it possible to treat a Dotprompt file as an e
 Here's an example of a Dotprompt file that extracts structured data from provided text:
 
 ```handlebars
----
-model: googleai/gemini-1.5-pro
-input:
-  schema:
-    text: string
-output:
-  format: json
-  schema:
-    title?: string, the title of the article if it has one
-    summary: string, a 3-sentence summary of the text
-    tags?(array, a list of string tag category for the text): String, 
----
-
-Extract the requested information from the given text. If a piece of information is not present, omit that field from the output.
-
-Text: {{text}}
+--- model: googleai/gemini-1.5-pro input: schema: text: string output: format: json schema: title?:
+string, the title of the article if it has one summary: string, a 3-sentence summary of the text
+tags?(array, a list of string tag category for the text): String, --- Extract the requested
+information from the given text. If a piece of information is not present, omit that field from the
+output. Text:
+{{text}}
 ```
 
 This Dotprompt file:
@@ -60,23 +50,19 @@ The remainder of this getting started guide will use the reference Dotprompt imp
 First, install the necessary packages using NPM. Here we'll be using the [Gemini API](https://ai.google.dev/gemini-api) from Google as our model implementation:
 
 ```bash
-npm i \
-  @genkit-ai/core \
-  @genkit-ai/ai \
-  @genkit-ai/dotprompt \
-  @genkit-ai/googleai
+npm i genkit @genkit-ai/googleai
 ```
 
 After installation, you'll need to set up your environment and initialize the Dotprompt system. Here's a basic setup:
 
 ```typescript
-import { configureGenkit } from '@genkit-ai/core';
-import { googleAI } from '@genkit-ai/googleai';
-import { dotprompt, promptRef } from '@genkit-ai/dotprompt';
+import { genkit } from "genkit";
+import { googleAI } from "@genkit-ai/googleai";
 
 // Configure Genkit with the GoogleAI provider and Dotprompt plugin
-configureGenkit({
-  plugins: [googleAI(), dotprompt()],
+const ai = genkit({
+  plugins: [googleAI()],
+  // promptDir: 'prompts', /* this is the default value */
 });
 
 // Now you're ready to use Dotprompt!
@@ -87,15 +73,15 @@ configureGenkit({
 With this setup, you can now create `.prompt` files in your project and use them in your code. For example, if you have a file named `extractInfo.prompt` with the content from the earlier example, you can use it like this:
 
 ```typescript
-const extractInfoPrompt = promptRef('extractInfo');
+const extractInfoPrompt = promptRef("extractInfo");
 
-const result = await extractInfoPrompt.generate({
+const { output } = await extractInfoPrompt.generate({
   input: {
     text: "John Doe is a 35-year-old software engineer living in New York.",
   },
 });
 
-console.log(result.output());
+console.log(output);
 // Output: { "name": "John Doe", "age": 35, "occupation": "software engineer" }
 ```
 
