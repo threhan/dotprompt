@@ -1,0 +1,66 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: basic_partial
+  template: |
+    {{> greeting}} This is the main template.
+  partials:
+    greeting: "Hello from a partial!"
+  tests:
+    - desc: renders a basic partial
+      data:
+        input: {}
+      expect:
+        messages:
+          - role: user
+            content: [{ text: "Hello from a partial! This is the main template.\n" }]
+
+- name: partial_with_context
+  template: |
+    {{> userGreeting name=username}}
+  partials:
+    userGreeting: "Welcome back, {{name}}!"
+  tests:
+    - desc: renders a partial with context
+      data:
+        input: { username: "Alice" }
+      expect:
+        messages:
+          - role: user
+            content: [{ text: "Welcome back, Alice!" }]
+
+- name: resolved_partial
+  template: |
+    {{> resolved}}
+  resolverPartials:
+    resolved: Hello from a resolved partial!
+  tests:
+    - desc: renders a partial provided by a resolver.
+      expect:
+        messages:
+          - role: user
+            content: [{ text: "Hello from a resolved partial!" }]
+
+- name: nested_resolved_partial
+  template: |
+    {{> resolvedOuter}}
+  resolverPartials:
+    resolvedOuter: Hello from {{> resolvedInner}}!
+    resolvedInner: a nested resolved partial
+  tests:
+    - desc: renders a resolver partial inside a resolver partial.
+      expect:
+        messages:
+          - role: user
+            content: [{ text: "Hello from a nested resolved partial!" }]

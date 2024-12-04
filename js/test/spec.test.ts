@@ -31,6 +31,8 @@ interface SpecSuite {
   data?: DataArgument;
   schemas?: Record<string, JSONSchema>;
   tools?: Record<string, ToolDefinition>;
+  partials?: Record<string, string>;
+  resolverPartials?: Record<string, string>;
   tests: { desc?: string; data: DataArgument; expect: any; options: object }[];
 }
 
@@ -48,7 +50,15 @@ for (const file of files) {
           const env = new DotpromptEnvironment({
             schemas: s.schemas,
             tools: s.tools,
+            partialResolver: (name: string) => s.resolverPartials?.[name] || null,
           });
+
+          if (s.partials) {
+            for (const [name, template] of Object.entries(s.partials)) {
+              env.definePartial(name, template);
+            }
+          }
+
           const result = await env.render(s.template, { ...s.data, ...tc.data }, tc.options);
           assert.deepStrictEqual(result, { ...tc.expect, config: tc.expect.config || {} });
         });

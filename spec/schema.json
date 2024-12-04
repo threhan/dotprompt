@@ -17,6 +17,23 @@
           "type": "object"
         }
       },
+      "resolverSchemas": {
+        "type": "object",
+        "description": "Registry of schemas that are provided by a schema resolver.",
+        "additionalProperties": {"type": "object"}
+      },
+      "partials": {
+        "type": "object",
+        "description": "Registry of partials to be made available.",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "resolverPartials": {
+        "type": "object",
+        "description": "Registry of partials that are provided by a schema resolver.",
+        "additionalProperties": {"type": "string"}
+      },
       "tests": {
         "type": "array",
         "items": {
