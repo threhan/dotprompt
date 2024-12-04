@@ -16,7 +16,7 @@
 
 import { DotpromptEnvironment, DotpromptOptions } from "./environment.js";
 export type * from "./types.js";
-export { DotpromptOptions };
+export { DotpromptEnvironment, DotpromptOptions };
 
 export function dotprompt(options?: DotpromptOptions): DotpromptEnvironment {
   return new DotpromptEnvironment(options);

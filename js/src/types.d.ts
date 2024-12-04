@@ -89,7 +89,6 @@ export type Part =
 export interface Message extends HasMetadata {
   role: "user" | "model" | "tool" | "system";
   content: Part[];
-  metadata?: Record<string, any>;
 }
 
 export interface Document extends HasMetadata {
@@ -132,4 +131,22 @@ export interface SchemaResolver {
  **/
 export interface ToolResolver {
   (toolName: string): ToolDefinition | null | Promise<ToolDefinition | null>;
+}
+
+/**
+ * A rendered prompt is the final result of rendering a Dotprompt template.
+ * It includes all of the prompt metadata as well as a set of `messages` to
+ * be sent to the  model.
+ */
+export interface RenderedPrompt<ModelConfig = Record<string, any>> extends PromptMetadata<ModelConfig> {
+  /** The rendered messages of the prompt. */
+  messages: Message[];
+}
+
+/**
+ * CompiledPrompt is a function that takes runtime data / context and returns
+ * a rendered prompt result.
+ */
+export interface CompiledPrompt<ModelConfig = Record<string,any>> {
+  (data: DataArgument, options?: PromptMetadata<ModelConfig>): Promise<RenderedPrompt<ModelConfig>>;
 }

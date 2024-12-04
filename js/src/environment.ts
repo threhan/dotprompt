@@ -16,7 +16,7 @@
 
 import Handlebars from "handlebars";
 import * as helpers from "./helpers";
-import { DataArgument, JSONSchema, PromptMetadata, SchemaResolver, ToolDefinition, ToolResolver } from "./types";
+import { CompiledPrompt, DataArgument, JSONSchema, PromptMetadata, RenderedPrompt, SchemaResolver, ToolDefinition, ToolResolver } from "./types";
 import { parseDocument, toMessages } from "./parse";
 import { picoschema } from "./picoschema";
 import { removeUndefinedFields } from "./util";
@@ -101,8 +101,8 @@ export class DotpromptEnvironment {
     source: string,
     data: DataArgument<Variables> = {},
     options?: PromptMetadata<ModelConfig>
-  ) {
-    const renderer = await this.compile<Variables, ModelConfig>(source);
+  ): Promise<RenderedPrompt<ModelConfig>> {
+    const renderer = this.compile<Variables, ModelConfig>(source);
     return renderer(data, options);
   }
 
@@ -170,7 +170,7 @@ export class DotpromptEnvironment {
     return out;
   }
 
-  async compile<Variables = any, ModelConfig = Record<string, any>>(source: string) {
+  compile<Variables = any, ModelConfig = Record<string, any>>(source: string): CompiledPrompt<ModelConfig> {
     const { metadata: parsedMetadata, template } = this.parse<ModelConfig>(source);
 
     const renderString = this.handlebars.compile<Variables>(template, {
