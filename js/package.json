@@ -9,7 +9,7 @@
     "watch": "npm run compile -- --watch",
     "test": "node --import tsx --test test/*.ts"
   },
-  "keywords": [],
+  "keywords": ["genai", "prompting", "llms", "templating", "handlebars"],
   "author": "",
   "license": "ISC",
   "devDependencies": {
