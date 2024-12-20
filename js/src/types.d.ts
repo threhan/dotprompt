@@ -30,11 +30,25 @@ interface HasMetadata {
   metadata?: Record<string, any>;
 }
 
+export interface PromptRef {
+  name: string;
+  variant?: string;
+  version?: string;
+}
+
+export interface PromptData extends PromptRef {
+  source: string;
+}
+
 export interface PromptMetadata<ModelConfig = Record<string, any>> extends HasMetadata {
   /** The name of the prompt. */
   name?: string;
   /** The variant name for the prompt. */
   variant?: string;
+  /** The version of the prompt. */
+  version?: string;
+  /** A description of the prompt. */
+  description?: string;
   /** The name of the model to use for this prompt, e.g. `vertexai/gemini-1.0-pro` */
   model?: string;
   /** Names of tools (registered separately) to allow use of in this prompt. */
@@ -58,6 +72,12 @@ export interface PromptMetadata<ModelConfig = Record<string, any>> extends HasMe
     /** Schema defining the output structure. */
     schema?: Schema;
   };
+}
+
+export interface ParsedPrompt<ModelConfig = Record<string, any>>
+  extends PromptMetadata<ModelConfig> {
+  /** The source of the template with metadata / frontmatter already removed. */
+  template: string;
 }
 
 interface EmptyPart extends HasMetadata {
@@ -134,19 +154,70 @@ export interface ToolResolver {
 }
 
 /**
- * A rendered prompt is the final result of rendering a Dotprompt template.
+ * RenderedPrompt is the final result of rendering a Dotprompt template.
  * It includes all of the prompt metadata as well as a set of `messages` to
  * be sent to the  model.
  */
-export interface RenderedPrompt<ModelConfig = Record<string, any>> extends PromptMetadata<ModelConfig> {
+export interface RenderedPrompt<ModelConfig = Record<string, any>>
+  extends PromptMetadata<ModelConfig> {
   /** The rendered messages of the prompt. */
   messages: Message[];
 }
 
 /**
- * CompiledPrompt is a function that takes runtime data / context and returns
+ * PromptFunction is a function that takes runtime data / context and returns
  * a rendered prompt result.
  */
-export interface CompiledPrompt<ModelConfig = Record<string,any>> {
+export interface PromptFunction<ModelConfig = Record<string, any>> {
   (data: DataArgument, options?: PromptMetadata<ModelConfig>): Promise<RenderedPrompt<ModelConfig>>;
+  prompt: ParsedPrompt<ModelConfig>;
+}
+
+export interface PaginatedResponse {
+  cursor?: string;
+}
+
+export interface PartialRef {
+  name: string;
+  variant?: string;
+  version?: string;
+}
+
+export interface PartialData extends PartialRef {
+  source: string;
+}
+
+/**
+ * PromptStore is a common interface that provides for
+ */
+export interface PromptStore {
+  /** Return a list of all prompts in the store (optionally paginated). Some store providers may return limited metadata. */
+  list(options?: {
+    cursor?: string;
+    limit?: number;
+  }): Promise<{ prompts: Array<PromptRef>; cursor?: string }>;
+  /** Return a list of partial names available in this store. */
+  listPartials(options?: { cursor?: string; limit?: number }): Promise<{
+    partials: Array<PartialRef>;
+    cursor?: string;
+  }>;
+  /** Retrieve a prompt from the store.  */
+  load(name: string, options?: { variant?: string; version?: string }): Promise<PromptData>;
+  /** Retrieve a partial from the store. */
+  loadPartial(name: string, options?: { variant?: string; version?: string }): Promise<PromptData>;
+}
+
+/**
+ * PromptStoreWritable is a PromptStore that also has built-in methods for writing prompts in addition to reading them.
+ */
+export interface PromptStoreWritable extends PromptStore {
+  /** Save a prompt in the store. May be destructive for prompt stores without versioning. */
+  save(prompt: PromptData): Promise<void>;
+  /** Delete a prompt from the store. */
+  delete(name: string, options?: { variant?: string }): Promise<void>;
+}
+
+export interface PromptBundle {
+  partials: PartialData[];
+  prompts: PromptData[];
 }

@@ -15,27 +15,35 @@
  */
 
 import { parse } from "yaml";
-import { DataArgument, Document, MediaPart, Message, Part, PromptMetadata } from "./types";
+import {
+  DataArgument,
+  Document,
+  MediaPart,
+  Message,
+  ParsedPrompt,
+  Part,
+  PromptMetadata,
+} from "./types";
 
 const FRONTMATTER_REGEX = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
 
 export function parseDocument<ModelConfig = Record<string, any>>(
   source: string
-): { metadata: PromptMetadata<ModelConfig>; template: string } {
+): ParsedPrompt<ModelConfig> {
   const match = source.match(FRONTMATTER_REGEX);
 
   if (match) {
     const [, frontmatter, content] = match;
     try {
       const metadata = parse(frontmatter) as PromptMetadata<ModelConfig>;
-      return { metadata, template: content.trim() };
+      return { ...metadata, template: content.trim() };
     } catch (error) {
-      console.error("Error parsing YAML frontmatter:", error);
-      return { metadata: {}, template: source.trim() };
+      console.error("Dotprompt: Error parsing YAML frontmatter:", error);
+      return { template: source.trim() };
     }
   }
 
-  return { metadata: {}, template: source };
+  return { template: source };
 }
 
 const ROLE_REGEX = /(<<<dotprompt:(?:role:[a-z]+|history))>>>/g;

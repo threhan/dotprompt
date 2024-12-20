@@ -5,20 +5,27 @@
   "main": "index.js",
   "scripts": {
     "compile": "tsup-node src/index.ts --dts --format esm,cjs",
-    "build": "npm run compile && tsc --noEmit",
+    "build": "npm run compile && tsc -p ./tsconfig.build.json --noEmit",
     "watch": "npm run compile -- --watch",
-    "test": "node --import tsx --test test/*.ts"
+    "test": " vitest"
   },
-  "keywords": ["genai", "prompting", "llms", "templating", "handlebars"],
+  "keywords": [
+    "genai",
+    "prompting",
+    "llms",
+    "templating",
+    "handlebars"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^22.10.1",
+    "@types/node": "^22.9.0",
     "tsup": "^8.2.4",
     "tsx": "^4.17.0",
     "typedoc": "^0.27.2",
     "typedoc-plugin-markdown": "^4.3.1",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.8"
   },
   "dependencies": {
     "handlebars": "^4.7.8",

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { parse } from "yaml";
 import { JSONSchema, SchemaResolver } from "./types.js";
 
 const JSON_SCHEMA_SCALAR_TYPES = ["string", "boolean", "null", "number", "integer", "any"];
@@ -51,26 +52,26 @@ export class PicoschemaParser {
     if (!schema) return null;
 
     // Allow for top-level named schemas
-    if (typeof schema === 'string') {
+    if (typeof schema === "string") {
       const [type, description] = extractDescription(schema);
       if (JSON_SCHEMA_SCALAR_TYPES.includes(type)) {
-        const out: JSONSchema = {type};
+        const out: JSONSchema = { type };
         if (description) out.description = description;
         return out;
       }
       const resolvedSchema = await this.mustResolveSchema(type);
-      return {...resolvedSchema, description};
+      return { ...resolvedSchema, description };
     }
 
     // if there's a JSON schema-ish type at the top level, treat as JSON schema
     if ([...JSON_SCHEMA_SCALAR_TYPES, "object", "array"].includes((schema as any)?.type)) {
       return schema;
     }
-  
+
     if (typeof (schema as any)?.properties === "object") {
       return { ...schema, type: "object" };
     }
-  
+
     return this.parsePico(schema);
   }
 
@@ -82,42 +83,42 @@ export class PicoschemaParser {
         if (description) resolvedSchema.description = description;
         return resolvedSchema;
       }
-  
+
       if (type === "any") {
         return description ? { description } : {};
       }
-  
+
       return description ? { type, description } : { type };
     } else if (typeof obj !== "object") {
       throw new Error(
         "Picoschema: only consists of objects and strings. Got: " + JSON.stringify(obj)
       );
     }
-  
+
     const schema: JSONSchema = {
       type: "object",
       properties: {},
       required: [],
       additionalProperties: false,
     };
-  
+
     for (const key in obj) {
       // wildcard property
       if (key === WILDCARD_PROPERTY_NAME) {
         schema.additionalProperties = await this.parsePico(obj[key], [...path, key]);
         continue;
       }
-  
+
       const [name, typeInfo] = key.split("(");
       const isOptional = name.endsWith("?");
       const propertyName = isOptional ? name.slice(0, -1) : name;
-  
+
       if (!isOptional) {
         schema.required.push(propertyName);
       }
-  
+
       if (!typeInfo) {
-        const prop = {...await this.parsePico(obj[key], [...path, key])};
+        const prop = { ...(await this.parsePico(obj[key], [...path, key])) };
         // make all optional fields also nullable
         if (isOptional && typeof prop.type === "string") {
           prop.type = [prop.type, "null"];
@@ -125,7 +126,7 @@ export class PicoschemaParser {
         schema.properties[propertyName] = prop;
         continue;
       }
-  
+
       const [type, description] = extractDescription(typeInfo.substring(0, typeInfo.length - 1));
       if (type === "array") {
         schema.properties[propertyName] = {
@@ -141,13 +142,15 @@ export class PicoschemaParser {
         if (isOptional) prop.enum.push(null);
         schema.properties[propertyName] = prop;
       } else {
-        throw new Error("Picoschema: parenthetical types must be 'object' or 'array', got: " + type);
+        throw new Error(
+          "Picoschema: parenthetical types must be 'object' or 'array', got: " + type
+        );
       }
       if (description) {
         schema.properties[propertyName].description = description;
       }
     }
-  
+
     if (!schema.required.length) delete schema.required;
     return schema;
   }

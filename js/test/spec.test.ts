@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-import test from "node:test";
+import { describe, it, expect, suite } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { join, relative } from "node:path";
 import { DotpromptEnvironment } from "../src/environment";
-import assert from "node:assert";
 import { DataArgument, JSONSchema, ToolDefinition } from "../src/types";
 
-const specDir = join(__dirname, "..", "..", "spec");
+const specDir = join("..", "spec");
 const files = readdirSync(specDir, { recursive: true, withFileTypes: true });
 
 interface SpecSuite {
@@ -36,33 +35,38 @@ interface SpecSuite {
   tests: { desc?: string; data: DataArgument; expect: any; options: object }[];
 }
 
-for (const file of files) {
-  if (file.isDirectory()) {
-    continue;
-  }
-
-  if (file.name.endsWith(".yaml")) {
+// Process each YAML file
+files
+  .filter((file) => !file.isDirectory() && file.name.endsWith(".yaml"))
+  .forEach((file) => {
     const suiteName = join(relative(specDir, file.path), file.name.replace(/\.yaml$/, ""));
     const suites: SpecSuite[] = parse(readFileSync(join(file.path, file.name), "utf-8"));
-    for (const s of suites) {
-      for (const tc of s.tests) {
-        test(`${suiteName} ${s.name} ${tc.desc}`, async () => {
-          const env = new DotpromptEnvironment({
-            schemas: s.schemas,
-            tools: s.tools,
-            partialResolver: (name: string) => s.resolverPartials?.[name] || null,
+
+    // Create a describe block for each YAML file
+    suite(suiteName, () => {
+      // Create a describe block for each suite in the file
+      suites.forEach((s) => {
+        describe(s.name, () => {
+          // Create a test for each test case in the suite
+          s.tests.forEach((tc) => {
+            it(tc.desc || "should match expected output", async () => {
+              const env = new DotpromptEnvironment({
+                schemas: s.schemas,
+                tools: s.tools,
+                partialResolver: (name: string) => s.resolverPartials?.[name] || null,
+              });
+
+              if (s.partials) {
+                for (const [name, template] of Object.entries(s.partials)) {
+                  env.definePartial(name, template);
+                }
+              }
+
+              const result = await env.render(s.template, { ...s.data, ...tc.data }, tc.options);
+              expect(result).toEqual({ ...tc.expect, config: tc.expect.config || {} });
+            });
           });
-
-          if (s.partials) {
-            for (const [name, template] of Object.entries(s.partials)) {
-              env.definePartial(name, template);
-            }
-          }
-
-          const result = await env.render(s.template, { ...s.data, ...tc.data }, tc.options);
-          assert.deepStrictEqual(result, { ...tc.expect, config: tc.expect.config || {} });
         });
-      }
-    }
-  }
-}
+      });
+    });
+  });

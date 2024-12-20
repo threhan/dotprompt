@@ -17,7 +17,7 @@
 import { default as Handlebars } from "handlebars";
 import * as helpers from "./helpers";
 import {
-  CompiledPrompt,
+  PromptFunction,
   DataArgument,
   JSONSchema,
   PromptMetadata,
@@ -25,6 +25,7 @@ import {
   SchemaResolver,
   ToolDefinition,
   ToolResolver,
+  ParsedPrompt,
 } from "./types";
 import { parseDocument, toMessages } from "./parse";
 import { picoschema } from "./picoschema";
@@ -111,7 +112,7 @@ export class DotpromptEnvironment {
     return this;
   }
 
-  parse<ModelConfig = Record<string, any>>(source: string) {
+  parse<ModelConfig = Record<string, any>>(source: string): ParsedPrompt<ModelConfig> {
     return parseDocument<ModelConfig>(source);
   }
 
@@ -157,6 +158,7 @@ export class DotpromptEnvironment {
       out.config = { ...config, ...(merges[i]?.config || {}) };
     }
     delete out.input;
+    delete (out as any).template;
     out = removeUndefinedFields(out);
     out = await this.resolveTools(out);
     out = await this.renderPicoschema(out);
@@ -236,24 +238,24 @@ export class DotpromptEnvironment {
   }
 
   async compile<Variables = any, ModelConfig = Record<string, any>>(
-    source: string
-  ): Promise<CompiledPrompt<ModelConfig>> {
-    const { metadata: parsedMetadata, template } = this.parse<ModelConfig>(source);
+    source: string | ParsedPrompt<ModelConfig>
+  ): Promise<PromptFunction<ModelConfig>> {
+    if (typeof source === "string") source = this.parse<ModelConfig>(source);
 
     // Resolve all partials before compilation
-    await this.resolvePartials(template);
+    await this.resolvePartials(source.template);
 
-    const renderString = this.handlebars.compile<Variables>(template, {
+    const renderString = this.handlebars.compile<Variables>(source.template, {
       knownHelpers: this.knownHelpers,
       knownHelpersOnly: true,
     });
 
-    return async (data: DataArgument, options?: PromptMetadata<ModelConfig>) => {
-      const selectedModel = options?.model || parsedMetadata.model || this.defaultModel;
+    const outFunc = async (data: DataArgument, options?: PromptMetadata<ModelConfig>) => {
+      const selectedModel = options?.model || source.model || this.defaultModel;
       const modelConfig = this.modelConfigs[selectedModel!] as ModelConfig;
       const mergedMetadata = await this.renderMetadata<ModelConfig>(
         modelConfig ? { config: modelConfig } : {},
-        parsedMetadata,
+        source,
         options
       );
 
@@ -271,5 +273,7 @@ export class DotpromptEnvironment {
         messages: toMessages<ModelConfig>(renderedString, data),
       };
     };
+    (outFunc as PromptFunction<ModelConfig>).prompt = source;
+    return outFunc as PromptFunction<ModelConfig>;
   }
 }
