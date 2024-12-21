@@ -26,6 +26,8 @@ import {
   ToolDefinition,
   ToolResolver,
   ParsedPrompt,
+  PromptStore,
+  PromptRefFunction,
 } from "./types";
 import { parseDocument, toMessages } from "./parse";
 import { picoschema } from "./picoschema";
@@ -55,6 +57,8 @@ export interface DotpromptOptions {
   schemaResolver?: SchemaResolver;
   /** Provide a lookup implementation to resolve partial names to their content. */
   partialResolver?: PartialResolver;
+  /** An optional store of existing prompts and partials that will be used. */
+  store?: PromptStore;
 }
 
 export class DotpromptEnvironment {
@@ -67,6 +71,7 @@ export class DotpromptEnvironment {
   private schemas: Record<string, JSONSchema> = {};
   private schemaResolver?: SchemaResolver;
   private partialResolver?: PartialResolver;
+  private store?: PromptStore;
 
   constructor(options?: DotpromptOptions) {
     this.handlebars = Handlebars.noConflict();
@@ -218,7 +223,7 @@ export class DotpromptEnvironment {
   }
 
   private async resolvePartials(template: string): Promise<void> {
-    if (!this.partialResolver) return;
+    if (!this.partialResolver && !this.store) return;
 
     const partials = this.identifyPartials(template);
 
@@ -226,7 +231,8 @@ export class DotpromptEnvironment {
     await Promise.all(
       Array.from(partials).map(async (name) => {
         if (!this.handlebars.partials[name]) {
-          const content = await this.partialResolver!(name);
+          const content =
+            (await this.partialResolver!(name)) || (await this.store?.loadPartial(name))?.source;
           if (content) {
             this.definePartial(name, content);
             // Recursively resolve partials in the partial content
@@ -238,9 +244,11 @@ export class DotpromptEnvironment {
   }
 
   async compile<Variables = any, ModelConfig = Record<string, any>>(
-    source: string | ParsedPrompt<ModelConfig>
+    source: string | ParsedPrompt<ModelConfig>,
+    additionalMetadata?: PromptMetadata<ModelConfig>
   ): Promise<PromptFunction<ModelConfig>> {
     if (typeof source === "string") source = this.parse<ModelConfig>(source);
+    if (additionalMetadata) source = { ...source, ...additionalMetadata };
 
     // Resolve all partials before compilation
     await this.resolvePartials(source.template);
@@ -275,5 +283,35 @@ export class DotpromptEnvironment {
     };
     (outFunc as PromptFunction<ModelConfig>).prompt = source;
     return outFunc as PromptFunction<ModelConfig>;
+  }
+
+  get<Variables = any, ModelConfig = Record<string, any>>(
+    name: string,
+    options?: { variant?: string; version?: string }
+  ): PromptRefFunction<ModelConfig> {
+    if (!this.store)
+      throw new Error(
+        "Dotprompt: Must supply a {store} option when initializing dotprompt to use get()"
+      );
+
+    const fn = (async (data, options) => {
+      const execFn = await this.load<Variables, ModelConfig>(name, options);
+      return execFn(data, options);
+    }) as PromptRefFunction<ModelConfig>;
+    fn.promptRef = { name, ...options };
+    return fn;
+  }
+
+  async load<Variables = any, ModelConfig = Record<string, any>>(
+    name: string,
+    options?: { variant?: string; version?: string }
+  ): Promise<PromptFunction<ModelConfig>> {
+    if (!this.store)
+      throw new Error(
+        "Dotprompt: Must supply a {store} option when initializing dotprompt to use load()"
+      );
+
+    const promptData = await this.store.load(name, options);
+    return this.compile(promptData.source, promptData);
   }
 }

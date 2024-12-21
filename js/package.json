@@ -2,7 +2,8 @@
   "name": "dotprompt",
   "version": "1.0.0-dev.1",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "compile": "tsup-node src/index.ts --dts --format esm,cjs",
     "build": "npm run compile && tsc -p ./tsconfig.build.json --noEmit",

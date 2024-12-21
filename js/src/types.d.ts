@@ -173,6 +173,15 @@ export interface PromptFunction<ModelConfig = Record<string, any>> {
   prompt: ParsedPrompt<ModelConfig>;
 }
 
+/**
+ * PromptRefFunction is a function that takes runtime data / context and returns
+ * a rendered prompt result after loading a prompt via reference.
+ */
+export interface PromptRefFunction<ModelConfig = Record<string, any>> {
+  (data: DataArgument, options?: PromptMetadata<ModelConfig>): Promise<RenderedPrompt<ModelConfig>>;
+  promptRef: PromptRef;
+}
+
 export interface PaginatedResponse {
   cursor?: string;
 }
