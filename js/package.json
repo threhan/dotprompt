@@ -8,7 +8,8 @@
     "compile": "tsup-node src/index.ts --dts --format esm,cjs",
     "build": "npm run compile && tsc -p ./tsconfig.build.json --noEmit",
     "watch": "npm run compile -- --watch",
-    "test": " vitest"
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "genai",
