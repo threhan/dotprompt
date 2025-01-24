@@ -133,16 +133,26 @@ export class DotpromptEnvironment {
   private async renderPicoschema<ModelConfig>(
     meta: PromptMetadata<ModelConfig>
   ): Promise<PromptMetadata<ModelConfig>> {
-    if (!meta.output?.schema) return meta;
-    return {
-      ...meta,
-      output: {
+    if (!meta.output?.schema && !meta.input?.schema) return meta;
+
+    const newMeta = { ...meta };
+    if (meta.input?.schema) {
+      newMeta.input = {
+        ...meta.input,
+        schema: await picoschema(meta.input.schema, {
+          schemaResolver: this.wrappedSchemaResolver.bind(this),
+        }),
+      };
+    }
+    if (meta.output?.schema) {
+      newMeta.output = {
         ...meta.output,
         schema: await picoschema(meta.output.schema, {
           schemaResolver: this.wrappedSchemaResolver.bind(this),
         }),
-      },
-    };
+      };
+    }
+    return newMeta;
   }
 
   private async wrappedSchemaResolver(name: string): Promise<JSONSchema | null> {
@@ -151,7 +161,7 @@ export class DotpromptEnvironment {
     return null;
   }
 
-  private async renderMetadata<ModelConfig = Record<string, any>>(
+  private async resolveMetadata<ModelConfig = Record<string, any>>(
     base: PromptMetadata<ModelConfig>,
     ...merges: (PromptMetadata<ModelConfig> | undefined)[]
   ): Promise<PromptMetadata<ModelConfig>> {
@@ -162,7 +172,6 @@ export class DotpromptEnvironment {
       out = { ...out, ...merges[i] };
       out.config = { ...config, ...(merges[i]?.config || {}) };
     }
-    delete out.input;
     delete (out as any).template;
     out = removeUndefinedFields(out);
     out = await this.resolveTools(out);
@@ -258,14 +267,9 @@ export class DotpromptEnvironment {
       knownHelpersOnly: true,
     });
 
-    const outFunc = async (data: DataArgument, options?: PromptMetadata<ModelConfig>) => {
-      const selectedModel = options?.model || source.model || this.defaultModel;
-      const modelConfig = this.modelConfigs[selectedModel!] as ModelConfig;
-      const mergedMetadata = await this.renderMetadata<ModelConfig>(
-        modelConfig ? { config: modelConfig } : {},
-        source,
-        options
-      );
+    const renderFunc = async (data: DataArgument, options?: PromptMetadata<ModelConfig>) => {
+      // discard the input schema as once rendered it doesn't make sense
+      const { input, ...mergedMetadata } = await this.renderMetadata(source);
 
       const renderedString = renderString(
         { ...(options?.input?.default || {}), ...data.input },
@@ -276,13 +280,29 @@ export class DotpromptEnvironment {
           },
         }
       );
+
       return {
         ...mergedMetadata,
         messages: toMessages<ModelConfig>(renderedString, data),
       };
     };
-    (outFunc as PromptFunction<ModelConfig>).prompt = source;
-    return outFunc as PromptFunction<ModelConfig>;
+    (renderFunc as PromptFunction<ModelConfig>).prompt = source;
+    return renderFunc as PromptFunction<ModelConfig>;
+  }
+
+  async renderMetadata<ModelConfig>(
+    source: string | ParsedPrompt<ModelConfig>,
+    additionalMetadata?: PromptMetadata<ModelConfig>
+  ): Promise<PromptMetadata<ModelConfig>> {
+    if (typeof source === "string") source = this.parse<ModelConfig>(source);
+
+    const selectedModel = additionalMetadata?.model || source.model || this.defaultModel;
+    const modelConfig = this.modelConfigs[selectedModel!] as ModelConfig;
+    return this.resolveMetadata<ModelConfig>(
+      modelConfig ? { config: modelConfig } : {},
+      source,
+      additionalMetadata
+    );
   }
 
   get<Variables = any, ModelConfig = Record<string, any>>(
