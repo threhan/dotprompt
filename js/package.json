@@ -4,6 +4,11 @@
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/google/dotprompt.git",
+    "directory": "js"
+  },
   "scripts": {
     "compile": "tsup-node src/index.ts --dts --format esm,cjs",
     "build": "npm run compile && tsc -p ./tsconfig.build.json --noEmit",
