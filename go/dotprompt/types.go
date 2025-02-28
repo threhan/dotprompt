@@ -257,7 +257,7 @@ type RenderedPrompt struct {
 
 // PromptFunction is a function that takes runtime data/context and returns a
 // rendered prompt.
-type PromptFunction func(data DataArgument, options PromptMetadata) (RenderedPrompt, error)
+type PromptFunction func(data *DataArgument, options *PromptMetadata) (RenderedPrompt, error)
 
 // PromptRefFunction is a function that takes runtime data/context and returns a
 // rendered prompt after loading a prompt via reference.
