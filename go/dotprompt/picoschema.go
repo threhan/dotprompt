@@ -6,6 +6,7 @@ package dotprompt
 import (
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 )
 
@@ -81,9 +82,12 @@ func (p *PicoschemaParser) Parse(schema any) (JSONSchema, error) {
 
 	// if there's a JSON schema-ish type at the top level, treat as JSON schema
 	if schemaMap, ok := schema.(map[string]any); ok {
-		if slices.Contains(append(JSONSchemaScalarTypes, "object", "array"), schemaMap["type"].(string)) {
-			return schemaMap, nil
+		if schemaType, ok := schemaMap["type"].(string); ok {
+			if slices.Contains(append(JSONSchemaScalarTypes, "object", "array"), schemaType) {
+				return schemaMap, nil
+			}
 		}
+
 		if _, ok := schemaMap["properties"].(map[string]any); ok {
 			schemaMap["type"] = "object"
 			return schemaMap, nil
@@ -137,7 +141,8 @@ func (p *PicoschemaParser) parsePico(obj any, path ...string) (JSONSchema, error
 			if err != nil {
 				return nil, err
 			}
-			schema["additionalProperties"] = parsedValue
+			parsedCopy := createDeepCopy(parsedValue)
+			schema["additionalProperties"] = parsedCopy
 			continue
 		}
 
@@ -155,10 +160,13 @@ func (p *PicoschemaParser) parsePico(obj any, path ...string) (JSONSchema, error
 			if err != nil {
 				return nil, err
 			}
+			propCopy := createDeepCopy(prop)
 			if isOptional {
-				prop["type"] = []any{prop["type"], "null"}
+				if propType, ok := prop["type"].(string); ok {
+					propCopy["type"] = []any{propType, "null"}
+				}
 			}
-			schema["properties"].(map[string]any)[propertyName] = prop
+			schema["properties"].(map[string]any)[propertyName] = propCopy
 			continue
 		}
 
@@ -181,10 +189,11 @@ func (p *PicoschemaParser) parsePico(obj any, path ...string) (JSONSchema, error
 			if err != nil {
 				return nil, err
 			}
+			propCopy := createDeepCopy(prop)
 			if isOptional {
-				prop["type"] = []any{prop["type"], "null"}
+				propCopy["type"] = []any{prop["type"], "null"}
 			}
-			newProp = prop
+			newProp = propCopy
 		case "enum":
 			enumValues := value.([]any)
 			if isOptional && !containsInterface(enumValues, nil) {
@@ -194,7 +203,6 @@ func (p *PicoschemaParser) parsePico(obj any, path ...string) (JSONSchema, error
 		default:
 			return nil, fmt.Errorf("Picoschema: parenthetical types must be 'object' or 'array', got: %s", typeDesc[0])
 		}
-
 		if typeDesc[1] != "" {
 			newProp["description"] = typeDesc[1]
 		}
@@ -203,6 +211,8 @@ func (p *PicoschemaParser) parsePico(obj any, path ...string) (JSONSchema, error
 
 	if len(schema["required"].([]string)) == 0 {
 		delete(schema, "required")
+	} else {
+		sort.Strings(schema["required"].([]string))
 	}
 	return schema, nil
 }
