@@ -106,43 +106,51 @@ func NewDotprompt(options *DotpromptOptions) *Dotprompt {
 }
 
 // DefineHelper registers a helper function.
-func (dp *Dotprompt) DefineHelper(name string, helper any, tpl *raymond.Template) {
+func (dp *Dotprompt) DefineHelper(name string, helper any, tpl *raymond.Template) error {
 	if dp.knownHelpers[name] {
-		return
+		return fmt.Errorf("the helper is already registered: %s", name)
 	}
 	tpl.RegisterHelper(name, helper)
 	dp.knownHelpers[name] = true
+	return nil
 }
 
 // DefinePartial registers a partial template.
-func (dp *Dotprompt) DefinePartial(name string, source string, tpl *raymond.Template) {
+func (dp *Dotprompt) DefinePartial(name string, source string, tpl *raymond.Template) error {
 	if dp.knownPartials[name] {
-		return
+		return fmt.Errorf("the partial is already registered: %s", name)
 	}
 	tpl.RegisterPartial(name, source)
 	dp.knownPartials[name] = true
+	return nil
 }
 
 // TODO: Add register helpers
-func (dp *Dotprompt) RegisterHelpers(tpl *raymond.Template) {
+func (dp *Dotprompt) RegisterHelpers(tpl *raymond.Template) error {
 	if dp.Helpers != nil {
 		for key, helper := range dp.Helpers {
-			dp.DefineHelper(key, helper, tpl)
+			if err := dp.DefineHelper(key, helper, tpl); err != nil {
+				return err
+			}
 		}
 	}
 	for name, helper := range templateHelpers {
-		dp.DefineHelper(name, helper, tpl)
+		if err := dp.DefineHelper(name, helper, tpl); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (dp *Dotprompt) RegisterPartials(tpl *raymond.Template, template string) error {
 	if dp.Partials != nil {
 		for key, partial := range dp.Partials {
-			dp.DefinePartial(key, partial, tpl)
+			if err := dp.DefinePartial(key, partial, tpl); err != nil {
+				return err
+			}
 		}
 	}
-	err := dp.resolvePartials(template, tpl)
-	if err != nil {
+	if err := dp.resolvePartials(template, tpl); err != nil {
 		return err
 	}
 	return nil
@@ -184,9 +192,11 @@ func (dp *Dotprompt) Compile(source string, additionalMetadata *PromptMetadata) 
 	}
 	dp.Template = renderTpl
 
-	dp.RegisterHelpers(dp.Template)
-	err = dp.RegisterPartials(dp.Template, parsedPrompt.Template)
-	if err != nil {
+	// RegisterHelpers()
+	if err = dp.RegisterHelpers(dp.Template); err != nil {
+		return nil, err
+	}
+	if err = dp.RegisterPartials(dp.Template, parsedPrompt.Template); err != nil {
 		return nil, err
 	}
 
@@ -259,7 +269,9 @@ func (dp *Dotprompt) resolvePartials(template string, tpl *raymond.Template) err
 				return err
 			}
 			if content != "" {
-				dp.DefinePartial(partial, content, tpl)
+				if err = dp.DefinePartial(partial, content, tpl); err != nil {
+					return err
+				}
 				err = dp.resolvePartials(content, tpl)
 				if err != nil {
 					return err
