@@ -17,6 +17,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { Dotprompt } from './dotprompt';
+import type { MessageSource } from './parse';
 import {
   FRONTMATTER_AND_BODY_REGEX,
   MEDIA_AND_SECTION_MARKER_REGEX,
@@ -38,7 +40,6 @@ import {
   toMessages,
   transformMessagesToHistory,
 } from './parse';
-import type { MessageSource } from './parse';
 import type { DataArgument, Message } from './types';
 
 describe('ROLE_AND_HISTORY_MARKER_REGEX', () => {
