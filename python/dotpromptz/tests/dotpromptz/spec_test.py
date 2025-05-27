@@ -131,19 +131,17 @@ SPECS_DIR = ROOT_DIR / 'spec'
 # List of files that are allowed to be used as spec files.
 # Useful for debugging and testing.
 ALLOWLISTED_FILES = [
-    # TODO(#284): most of commented out tests are failing because of issues with
-    # the handelbarz implementation.
     'spec/helpers/history.yaml',
-    # 'spec/helpers/ifEquals.yaml',
-    # 'spec/helpers/json.yaml',
+    'spec/helpers/ifEquals.yaml',
+    'spec/helpers/json.yaml',
     'spec/helpers/media.yaml',
     'spec/helpers/role.yaml',
+    'spec/helpers/unlessEquals.yaml',
+    'spec/variables.yaml',
     # 'spec/helpers/section.yaml',
-    # 'spec/helpers/unlessEquals.yaml',
     # 'spec/metadata.yaml',
     # 'spec/partials.yaml',
     # 'spec/picoschema.yaml',
-    'spec/variables.yaml',
 ]
 
 # Counters for test class and test method names.

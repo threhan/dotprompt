@@ -83,6 +83,7 @@ else:  # noqa
     from enum import StrEnum  # noqa
 
 from ._native import (
+    HandlebarrzHelperOptions,
     HandlebarrzTemplate,
     html_escape,
     no_escape,
@@ -91,8 +92,8 @@ from ._native import (
 logger = structlog.get_logger(__name__)
 
 
-HelperFn = Callable[[list[Any], dict[str, Any], dict[str, Any]], str]
-NativeHelperFn = Callable[[str, str, str], str]
+HelperFn = Callable[[list[Any], 'HelperOptions'], str]
+NativeHelperFn = Callable[[str, HandlebarrzHelperOptions], str]
 Context = dict[str, Any]
 
 
@@ -576,6 +577,38 @@ class Template:
             raise
 
 
+class HelperOptions:
+    """Handlebars helper options."""
+
+    def __init__(self, options: HandlebarrzHelperOptions) -> None:
+        self._options: HandlebarrzHelperOptions = options
+
+    def context(self) -> dict[str, Any]:
+        """Get a representation of a context."""
+        context_json = self._options.context_json()
+        return json.loads(context_json) or {}
+
+    def hash_value(self, key: str) -> Any:
+        """Get a hash value for the given key (resolved within the context).
+
+        Args:
+            key: The key corresponding for the hash required.
+
+        Returns:
+            The hash value.
+        """
+        hash_value_json = self._options.hash_value_json(key)
+        return json.loads(hash_value_json) if hash_value_json else ''
+
+    def fn(self) -> str:
+        """Renders a default inner template (if the helper is a block helper)."""
+        return self._options.template()
+
+    def inverse(self) -> str:
+        """Renders the template of the else branch (if any)."""
+        return self._options.inverse()
+
+
 def create_helper(
     fn: HelperFn,
 ) -> NativeHelperFn:
@@ -600,12 +633,9 @@ def create_helper(
         Function compatible with the Rust interface.
     """
 
-    def wrapper(params_json: str, hash_json: str, ctx_json: str) -> str:
+    def wrapper(params_json: str, options: HandlebarrzHelperOptions) -> str:
         params = json.loads(params_json)
-        hash = json.loads(hash_json)
-        ctx = json.loads(ctx_json)
-
-        result = fn(params, hash, ctx)
+        result = fn(params, HelperOptions(options))
         return result
 
     return wrapper

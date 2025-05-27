@@ -17,7 +17,7 @@
 import unittest
 from typing import Any
 
-from handlebarrz import EscapeFunction, Template
+from handlebarrz import EscapeFunction, HelperOptions, Template
 
 
 class EscapeTest(unittest.TestCase):
@@ -124,12 +124,8 @@ class EscapeTest(unittest.TestCase):
         """Test safe string handling with a helper."""
         template = Template()
 
-        # Define a helper that returns a safe string
-        def safe_html_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def safe_html_helper(params: list[str], options: HelperOptions) -> str:
+            """Test helper that returns a safe string."""
             if params:
                 # Marked as safe, should not be escaped
                 return f'<span class="safe">{params[0]}</span>'

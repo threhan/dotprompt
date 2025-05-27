@@ -17,7 +17,7 @@
 import unittest
 from typing import Any
 
-from handlebarrz import Template
+from handlebarrz import HelperOptions, Template
 
 
 class SubexpressionTest(unittest.TestCase):
@@ -26,11 +26,8 @@ class SubexpressionTest(unittest.TestCase):
         template = Template()
 
         # Register comparison helpers
-        def gt_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def gt_helper(params: list[str], options: HelperOptions) -> str:
+            """Test greater helper."""
             if len(params) < 2:
                 return 'false'
             try:
@@ -38,11 +35,8 @@ class SubexpressionTest(unittest.TestCase):
             except (ValueError, TypeError):
                 return 'false'
 
-        def not_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def not_helper(params: list[str], options: HelperOptions) -> str:
+            """Test not helper."""
             if len(params) < 1:
                 return 'false'
             value = params[0]
@@ -83,12 +77,8 @@ class SubexpressionTest(unittest.TestCase):
         """Test deeply nested subexpressions."""
         template = Template()
 
-        # Register arithmetic helpers
-        def add_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def add_helper(params: list[str], options: HelperOptions) -> str:
+            """Test arithmetic helpers."""
             if len(params) >= 2:
                 try:
                     # Convert numeric inputs to floats for calculation
@@ -100,11 +90,7 @@ class SubexpressionTest(unittest.TestCase):
                     return '0'
             return '0'
 
-        def multiply_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def multiply_helper(params: list[str], options: HelperOptions) -> str:
             if len(params) >= 2:
                 try:
                     # Convert numeric inputs to floats for calculation
@@ -116,11 +102,7 @@ class SubexpressionTest(unittest.TestCase):
                     return '0'
             return '0'
 
-        def divide_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def divide_helper(params: list[str], options: HelperOptions) -> str:
             if len(params) >= 2:
                 try:
                     # Convert numeric inputs to floats for calculation
@@ -153,25 +135,17 @@ class SubexpressionTest(unittest.TestCase):
         """Test subexpressions in hash arguments."""
         template = Template()
 
-        # Register helpers
-        def eq_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def eq_helper(params: list[str], options: HelperOptions) -> str:
+            """Test equality helper."""
             if len(params) >= 2:
                 # Return string values for compatibility with Handlebars Rust
                 return 'true' if params[0] == params[1] else 'false'
             return 'false'
 
-        def select_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
-            condition = hash_args.get('condition', 'false')
-            if_true = hash_args.get('if_true', '')
-            if_false = hash_args.get('if_false', '')
+        def select_helper(params: list[str], options: HelperOptions) -> str:
+            condition = options.hash_value('condition') or 'false'
+            if_true = str(options.hash_value('if_true'))
+            if_false = str(options.hash_value('if_false'))
             # Check if condition is string "true" or "false"
             if isinstance(condition, str):
                 return if_true if condition == 'true' else if_false
@@ -200,12 +174,8 @@ class SubexpressionTest(unittest.TestCase):
         """Test dynamic lookups with subexpressions."""
         template = Template()
 
-        # Register a lookup helper
-        def get_key_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def get_key_helper(params: list[str], options: HelperOptions) -> str:
+            """Test lookup helper."""
             if params:
                 return params[0]
             return ''
@@ -235,12 +205,8 @@ class SubexpressionTest(unittest.TestCase):
         # Counter to track helper calls
         call_count = 0
 
-        # Define a helper that increments a counter
-        def count_helper(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def count_helper(params: list[str], options: HelperOptions) -> str:
+            """Test counter helper."""
             nonlocal call_count
             call_count += 1
             # Return result as string to ensure compatibility with Handlebars

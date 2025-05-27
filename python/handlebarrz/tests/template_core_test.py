@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from handlebarrz import Template
+from handlebarrz import HelperOptions, Template
 
 
 class TemplateCoreTest(unittest.TestCase):
@@ -157,12 +157,8 @@ class TemplateCoreTest(unittest.TestCase):
         """Test calling functions in the context through helpers."""
         template = Template()
 
-        # Register a helper function
-        def calculate_total(
-            params: list[str],
-            hash_args: dict[str, str],
-            context: dict[str, Any],
-        ) -> str:
+        def calculate_total(params: list[str], options: HelperOptions) -> str:
+            """Test helper function."""
             return '42'
 
         # Register the helper
